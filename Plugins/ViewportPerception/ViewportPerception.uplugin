@@ -1,0 +1,26 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "Viewport Perception",
+	"Description": "AI visual awareness for UE5 — captures the editor viewport and serves perception packets (frame + metadata) to the MCP bridge.",
+	"Category": "Editor",
+	"CreatedBy": "UE-Bridge",
+	"CanContainContent": false,
+	"EnabledByDefault": true,
+	"EditorCustomVirtualPath": "",
+	"SupportedTargetPlatforms": [ "Win64" ],
+	"Modules": [
+		{
+			"Name": "ViewportPerception",
+			"Type": "EditorNoCommandlet",
+			"LoadingPhase": "PostEngineInit"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "RemoteControl",
+			"Enabled": true
+		}
+	]
+}

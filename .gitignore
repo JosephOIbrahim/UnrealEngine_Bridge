@@ -1,0 +1,30 @@
+# UE5 Build Artifacts
+Binaries/
+Intermediate/
+DerivedDataCache/
+Saved/
+Build/
+
+# Visual Studio
+.vs/
+.vsconfig
+*.sln
+*.suo
+*.vcxproj*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Content (large binary assets - uncomment to track)
+# Content/
+
+# Legacy
+_legacy/

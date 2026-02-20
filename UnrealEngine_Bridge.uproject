@@ -1,0 +1,132 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.7",
+	"Category": "Games",
+	"Description": "UnrealEngine Bridge - Agentic AI bridge connecting Claude Code to Unreal Engine via MCP tools, Remote Control API, and USD transport",
+	"Modules": [
+		{
+			"Name": "UnrealEngineBridge",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine"
+			]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "UEBridge",
+			"Enabled": true
+		},
+		{
+			"Name": "USDImporter",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "PythonScriptPlugin",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "Paper2D",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "SkyCreatorPlugin",
+			"Enabled": true,
+			"Optional": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/b9aa540db8c54f7d928c61d3b30cb955"
+		},
+		{
+			"Name": "RemoteControl",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "WebSocketNetworking",
+			"Enabled": true
+		},
+		{
+			"Name": "EditorScriptingUtilities",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "Avalanche",
+			"Enabled": true,
+			"Optional": true,
+			"SupportedTargetPlatforms": [
+				"Win64",
+				"Linux",
+				"Mac"
+			]
+		},
+		{
+			"Name": "ClonerEffector",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "Niagara",
+			"Enabled": true
+		},
+		{
+			"Name": "PCG",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "SequencerAnimTools",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "ViewportPerception",
+			"Enabled": true,
+			"Optional": true,
+			"SupportedTargetPlatforms": [
+				"Win64"
+			]
+		},
+		{
+			"Name": "NiagaraNanite",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "NiagaraFluids",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "NiagaraMRQ",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "PythonFoundationPackages",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "PythonMLPackages",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "PythonAutomationTest",
+			"Enabled": true,
+			"Optional": true
+		}
+	],
+	"TargetPlatforms": [
+		"Windows"
+	]
+}

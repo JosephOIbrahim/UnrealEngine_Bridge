@@ -1,0 +1,42 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "2.1.0",
+	"FriendlyName": "UE Bridge",
+	"Description": "Agentic AI bridge for Unreal Engine. Provides MCP tool integration, file-based bridge protocol with USD transport, behavioral signal collection, and Remote Control API access for Claude Code.",
+	"Category": "Gameplay",
+	"CreatedBy": "Joseph Ibrahim",
+	"CreatedByURL": "https://github.com/JosephOIbrahim",
+	"DocsURL": "https://github.com/JosephOIbrahim/translators-game/wiki",
+	"MarketplaceURL": "",
+	"SupportURL": "https://github.com/JosephOIbrahim/translators-game/issues",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"EnabledByDefault": false,
+	"SupportedTargetPlatforms": ["Win64"],
+	"Modules": [
+		{
+			"Name": "UEBridgeRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "UEBridgeEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "PythonScriptPlugin",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "RemoteControl",
+			"Enabled": true,
+			"Optional": true
+		}
+	]
+}

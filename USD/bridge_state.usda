@@ -1,0 +1,283 @@
+#usda 1.0
+(
+    defaultPrim = "BridgeState"
+    doc = """CC↔UE5 Bridge Communication via USD Composition
+
+    This file replaces JSON-based state.json/answer.json with USD semantics.
+
+    Key Innovation: USD VariantSets as native state machines
+    - sync_status: idle → question_pending → answer_received → transition → complete
+    - message_type: none/question/answer/transition/finale/ack
+
+    LIVRPS Composition:
+    - Local: Message payload (changes per message)
+    - Variants: State machine (sync_status, message_type)
+    - References: Full cognitive substrate (pulled in via composition)
+
+    Protocol Flow:
+    1. Python writes question → sets sync_status="question_pending", message_type="question"
+    2. UE5 reads question from /Message prim
+    3. UE5 writes answer → sets sync_status="answer_received", message_type="answer"
+    4. Python reads answer from /Answer prim
+    5. Cycle repeats
+
+    Generator: UEBridge v2.0.0 (USD-native)
+    """
+    metersPerUnit = 1
+    upAxis = "Y"
+)
+
+def Xform "BridgeState" (
+    kind = "assembly"
+    variants = {
+        string sync_status = "idle"
+        string message_type = "none"
+    }
+    prepend variantSets = ["sync_status", "message_type"]
+    customData = {
+        string bridge_version = "2.0.0"
+        string protocol = "USD-native"
+        string generator = "UEBridge"
+    }
+)
+{
+    # ═══════════════════════════════════════════════════════════════════════════
+    # SYNC STATUS VARIANT SET
+    # State machine for bridge synchronization
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    variantSet "sync_status" = {
+        "idle" {
+            # Bridge initialized, waiting for action
+        }
+        "question_pending" {
+            # Question written by Python, waiting for UE5 to read
+            double timeout_seconds = 300.0
+            string pending_since = ""
+        }
+        "answer_received" {
+            # Answer written by UE5, waiting for Python to process
+            string received_at = ""
+        }
+        "transition" {
+            # Scene transition in progress
+            string transition_direction = ""
+        }
+        "complete" {
+            # Questionnaire finished
+            string completion_time = ""
+        }
+        "error" {
+            # Error state - check error_message
+            string error_message = ""
+            string error_code = ""
+        }
+    }
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MESSAGE TYPE VARIANT SET
+    # Determines which payload prim contains active data
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    variantSet "message_type" = {
+        "none" {
+            # No active message
+        }
+        "question" {
+            # /Message contains question data
+        }
+        "answer" {
+            # /Answer contains response data
+        }
+        "transition" {
+            # /Transition contains scene change data
+        }
+        "finale" {
+            # /Finale contains completion data
+        }
+        "ack" {
+            # /Ack contains acknowledgment data
+        }
+        "ready" {
+            # /Ready contains initialization data
+        }
+    }
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MESSAGE PRIM
+    # Current message payload (question data when message_type="question")
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def Xform "Message" (
+        doc = "Current message payload - question data from Python to UE5"
+    )
+    {
+        # Message metadata
+        string type = ""
+        int index = 0
+        int total = 8
+        string timestamp = ""
+
+        # Question-specific fields
+        string question_id = ""
+        string text = ""
+        string scene = ""
+
+        # Human-readable progress
+        string progress_display = "0/8"
+    }
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # OPTIONS PRIM
+    # Answer options for current question (3 options standard)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def Xform "Options" (
+        doc = "Answer options for current question"
+    )
+    {
+        def Xform "Option_0" {
+            int index = 0
+            string label = ""
+            string direction = ""
+            string semantic_tag = ""
+        }
+
+        def Xform "Option_1" {
+            int index = 1
+            string label = ""
+            string direction = ""
+            string semantic_tag = ""
+        }
+
+        def Xform "Option_2" {
+            int index = 2
+            string label = ""
+            string direction = ""
+            string semantic_tag = ""
+        }
+    }
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ANSWER PRIM
+    # User response data (written by UE5 when message_type="answer")
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def Xform "Answer" (
+        doc = "User response - written by UE5, read by Python"
+    )
+    {
+        string question_id = ""
+        int option_index = -1
+        double response_time_ms = 0.0
+        string selected_label = ""
+        string selected_direction = ""
+        string timestamp = ""
+    }
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # TRANSITION PRIM
+    # Scene transition data
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def Xform "Transition" (
+        doc = "Scene transition command"
+    )
+    {
+        string direction = ""
+        string next_scene = ""
+        float progress = 0.0
+        string from_question_id = ""
+    }
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # FINALE PRIM
+    # Completion data with profile reference
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def Xform "Finale" (
+        doc = "Questionnaire completion data"
+    )
+    {
+        string message = ""
+        string usd_path = ""
+        string checksum = ""
+        int total_questions = 8
+        int questions_answered = 0
+    }
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # READY PRIM
+    # Initialization handshake data
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def Xform "Ready" (
+        doc = "Bridge initialization data"
+    )
+    {
+        int total_questions = 8
+        string first_scene = ""
+        string bridge_version = "2.0.0"
+        string protocol = "USD-native"
+    }
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ACK PRIM
+    # Acknowledgment data from UE5
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def Xform "Ack" (
+        doc = "UE5 acknowledgment response"
+    )
+    {
+        bool ready = false
+        string ue_version = ""
+        string project = ""
+        string timestamp = ""
+    }
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # BEHAVIORAL SIGNALS PRIM
+    # ADHD_MoE routing signals detected from user behavior
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def Xform "BehavioralSignals" (
+        doc = "Behavioral signals for ADHD_MoE expert routing"
+    )
+    {
+        # Timing signals
+        double last_response_time_ms = 0.0
+        double average_response_time_ms = 0.0
+        int hesitation_count = 0
+        bool long_hesitation_detected = false
+
+        # Pattern signals
+        int rapid_click_count = 0
+        int skip_count = 0
+        int back_navigation_count = 0
+
+        # Derived state (for expert routing)
+        string detected_state = "focused"  # focused/stuck/overwhelmed/frustrated
+        string recommended_expert = "Direct"  # Validator/Scaffolder/Restorer/Direct/etc
+
+        # Energy/burnout tracking
+        string burnout_level = "GREEN"  # GREEN/YELLOW/ORANGE/RED
+        string momentum_phase = "cold_start"  # cold_start/building/rolling/peak/crashed
+    }
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # COGNITIVE STATE REFERENCE
+    # Composition arc to pull in full cognitive substrate (via LIVRPS)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def Xform "CognitiveState" (
+        doc = "Reference to full cognitive profile via composition"
+        # Uncomment when profile exists:
+        # references = [@./cognitive_profile.usda@</CognitiveSubstrate>]
+    )
+    {
+        # Placeholder - populated via reference composition
+        # When cognitive_profile.usda exists, this inherits all profile data
+        string placeholder = "Reference to cognitive_profile.usda"
+    }
+}

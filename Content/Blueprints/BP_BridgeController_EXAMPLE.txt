@@ -1,0 +1,208 @@
+================================================================================
+BP_BridgeController - Blueprint Example (Pseudo-code)
+================================================================================
+
+This file describes how to create the BP_BridgeController Blueprint in UE5.7.
+Since Blueprints are binary assets, this is pseudo-code for manual recreation.
+
+================================================================================
+CLASS SETUP
+================================================================================
+
+Parent Class: Actor
+Name: BP_BridgeController
+
+Components:
+├── DefaultSceneRoot (SceneComponent)
+├── BridgeComponent (UBridgeComponent) ← Add from C++ class
+└── UsdStageActor (Reference to existing actor in level)
+
+================================================================================
+VARIABLES
+================================================================================
+
+Category: UI References
+├── QuestionWidget (W_QuestionDisplay type, Instance Editable)
+├── OptionButtons (Array of W_OptionButton)
+└── ProgressWidget (W_Progress type)
+
+Category: State
+├── CurrentQuestionIndex (Integer, default 0)
+├── AnswerStartTime (Float)
+├── bIsWaitingForAnswer (Boolean)
+
+================================================================================
+EVENT GRAPH
+================================================================================
+
+─────────────────────────────────────────────────────────────────────────────
+BeginPlay
+─────────────────────────────────────────────────────────────────────────────
+
+[Event BeginPlay]
+    │
+    ├──► [Get BridgeComponent] ──► [Assign OnBridgeReady]
+    │                                      │
+    │                                      ▼
+    │                               [CustomEvent: OnBridgeReady]
+    │
+    ├──► [Get BridgeComponent] ──► [Assign OnQuestionReceived]
+    │                                      │
+    │                                      ▼
+    │                               [CustomEvent: OnQuestionReceived]
+    │
+    ├──► [Get BridgeComponent] ──► [Assign OnTransitionReceived]
+    │                                      │
+    │                                      ▼
+    │                               [CustomEvent: OnTransitionReceived]
+    │
+    └──► [Get BridgeComponent] ──► [Assign OnFinaleReceived]
+                                           │
+                                           ▼
+                                    [CustomEvent: OnFinaleReceived]
+
+─────────────────────────────────────────────────────────────────────────────
+OnBridgeReady (TotalQuestions: Integer)
+─────────────────────────────────────────────────────────────────────────────
+
+[OnBridgeReady] ──► [Print String: "Claude Code Connected!"]
+    │
+    ├──► [Set TotalQuestions on ProgressWidget]
+    │
+    └──► [Get BridgeComponent] ──► [SendAcknowledge]
+
+NOTE: SendAcknowledge tells Claude Code that UE5 is ready to receive questions.
+
+─────────────────────────────────────────────────────────────────────────────
+OnQuestionReceived (QuestionJson: String)
+─────────────────────────────────────────────────────────────────────────────
+
+[OnQuestionReceived]
+    │
+    ├──► [Get BridgeComponent] ──► [GetCurrentQuestion] ──► QuestionStruct
+    │
+    ├──► [Update QuestionWidget]
+    │         ├── Set Text = QuestionStruct.Text
+    │         ├── Set Index = QuestionStruct.Index
+    │         └── Set Total = QuestionStruct.Total
+    │
+    ├──► [ForEachLoop: QuestionStruct.OptionLabels]
+    │         │
+    │         └──► [Create W_OptionButton]
+    │                   ├── Set Label = OptionLabel
+    │                   ├── Set Index = ArrayIndex
+    │                   └── Bind OnClicked → OnOptionSelected
+    │
+    ├──► [Set AnswerStartTime = GetGameTimeInSeconds()]
+    │
+    └──► [Set bIsWaitingForAnswer = True]
+
+─────────────────────────────────────────────────────────────────────────────
+OnOptionSelected (OptionIndex: Integer)
+─────────────────────────────────────────────────────────────────────────────
+
+[OnOptionSelected]
+    │
+    ├──► [Branch: bIsWaitingForAnswer?]
+    │         │
+    │         └── False: [Return] (prevent double-click)
+    │
+    ├──► [Set bIsWaitingForAnswer = False]
+    │
+    ├──► [Calculate ResponseTime]
+    │         ResponseTimeMs = (GetGameTimeInSeconds - AnswerStartTime) * 1000
+    │
+    ├──► [Get BridgeComponent]
+    │         │
+    │         └──► [GetCurrentQuestion] ──► QuestionId
+    │
+    ├──► [Get BridgeComponent]
+    │         │
+    │         └──► [SendAnswer(QuestionId, OptionIndex, ResponseTimeMs)]
+    │
+    └──► [Play Selection Sound]
+         [Play Button Animation]
+
+─────────────────────────────────────────────────────────────────────────────
+OnTransitionReceived (Direction: String, NextScene: String)
+─────────────────────────────────────────────────────────────────────────────
+
+[OnTransitionReceived]
+    │
+    ├──► [Switch on Direction]
+    │         ├── "left"    → [Play LeftTransition Animation]
+    │         ├── "right"   → [Play RightTransition Animation]
+    │         ├── "forward" → [Play ForwardTransition Animation]
+    │         ├── "up"      → [Play UpTransition Animation]
+    │         └── "down"    → [Play DownTransition Animation]
+    │
+    ├──► [Update ProgressWidget]
+    │
+    └──► [Load NextScene Background]
+
+─────────────────────────────────────────────────────────────────────────────
+OnFinaleReceived (UsdPath: String)
+─────────────────────────────────────────────────────────────────────────────
+
+[OnFinaleReceived]
+    │
+    ├──► [Print String: "Profile Complete!"]
+    │
+    ├──► [Hide QuestionWidget]
+    │
+    ├──► [Show FinaleWidget]
+    │         ├── Display "Your cognitive profile is complete."
+    │         └── Display checksum from USD
+    │
+    └──► [Play Finale Music/Animation]
+
+================================================================================
+WIDGET BLUEPRINTS (UMG)
+================================================================================
+
+W_QuestionDisplay
+─────────────────
+├── Canvas Panel
+│   ├── Text Block: QuestionText (centered, large, pixelated font)
+│   ├── Text Block: Progress ("1/8")
+│   └── Vertical Box: OptionsContainer
+│         ├── W_OptionButton (slot 0)
+│         ├── W_OptionButton (slot 1)
+│         └── W_OptionButton (slot 2)
+
+W_OptionButton
+──────────────
+├── Border (8-bit style, changes on hover)
+│   └── Text Block: OptionLabel
+│
+├── Event: OnClicked → Dispatch OptionSelected(Index)
+└── Event: OnHovered → Play HoverSound, Scale up slightly
+
+W_Progress
+──────────
+├── Horizontal Box
+│   ├── 8 Image slots (filled/unfilled based on progress)
+│   └── Text: "3/8 COMPLETE"
+
+================================================================================
+NOTES FOR IMPLEMENTATION
+================================================================================
+
+1. TIMING: The bridge uses file-based communication. There's ~100-150ms latency
+   between Claude Code writing state.json and UE5 detecting it. This is fine
+   for a questionnaire game.
+
+2. USD STAGE: Add a UsdStageActor to your level pointed at
+   ~/.translators/cognitive_substrate.usda. The BridgeComponent will
+   auto-reload it when Claude Code updates the file.
+
+3. 8-BIT AESTHETIC: Use pixel art fonts (like "Press Start 2P"), simple
+   chiptune sounds, and maybe a CRT post-process effect.
+
+4. ACCESSIBILITY: Support keyboard navigation (1/2/3 keys, arrow keys)
+   not just mouse clicks.
+
+5. RESPONSE TIME: The AnswerStartTime tracking is important - Claude Code
+   uses response time as a signal (fast answers vs deliberate ones).
+
+================================================================================
