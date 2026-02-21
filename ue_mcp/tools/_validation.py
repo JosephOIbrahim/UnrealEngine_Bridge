@@ -179,6 +179,44 @@ def sanitize_property_name(name: str, param_name: str = "property_name") -> Opti
     return None
 
 
+def sanitize_material_value(value: str, param_type: str, param_name: str = "value") -> Optional[str]:
+    """Validate a material parameter value based on its type.
+
+    - scalar: a single numeric string (e.g. "0.5", "1.0", "-0.3")
+    - vector: 3 or 4 comma-separated floats (e.g. "1.0,0.0,0.0" or "1.0,0.0,0.0,1.0")
+    - texture: a UE content path (e.g. "/Game/Textures/T_Wood")
+
+    Returns error message or None if valid.
+    """
+    if not value:
+        return f"{param_name} cannot be empty"
+    if len(value) > 512:
+        return f"{param_name} too long ({len(value)} chars, max 512)"
+
+    if param_type == "scalar":
+        try:
+            float(value)
+        except ValueError:
+            return f"{param_name} must be a valid number for scalar type, got '{value}'"
+        return None
+
+    elif param_type == "vector":
+        parts = value.split(",")
+        if len(parts) not in (3, 4):
+            return f"{param_name} must have 3 or 4 comma-separated components for vector type, got {len(parts)}"
+        for i, part in enumerate(parts):
+            try:
+                float(part.strip())
+            except ValueError:
+                return f"{param_name} component {i} is not a valid number: '{part.strip()}'"
+        return None
+
+    elif param_type == "texture":
+        return sanitize_content_path(value, param_name)
+
+    return f"Unknown param_type '{param_type}'"
+
+
 def make_error(message: str) -> str:
     """Create a JSON error response string."""
     import json

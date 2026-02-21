@@ -238,4 +238,4 @@ UnrealEngine_Bridge/
 
 ## Known Issues
 
-- `ue_set_material_parameter` with `param_type="vector"` is unreachable: the `value` parameter (e.g. `"1.0,0.0,0.0,1.0"`) is rejected by `sanitize_label` which doesn't allow commas. Vector values cannot pass validation.
+None currently tracked.

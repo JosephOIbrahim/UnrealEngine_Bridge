@@ -242,13 +242,51 @@ class TestSetMaterialParameterAsync:
         assert "scalar_parameter_value" in code
 
     @pytest.mark.asyncio
-    async def test_vector_value_rejected_by_sanitizer(self, server, mock_ue):
-        """Vector values with commas are rejected by sanitize_label on value param."""
+    async def test_vector_code_path(self, server, mock_ue):
+        fn = _call(server, "ue_set_material_parameter")
+        await fn(
+            material_path="/Game/Materials/MI_Test",
+            param_name="BaseColor",
+            value="1.0,0.0,0.0,1.0",
+            param_type="vector",
+        )
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "LinearColor" in code
+        assert "BaseColor" in code
+
+    @pytest.mark.asyncio
+    async def test_texture_code_path(self, server, mock_ue):
+        fn = _call(server, "ue_set_material_parameter")
+        await fn(
+            material_path="/Game/Materials/MI_Test",
+            param_name="DiffuseMap",
+            value="/Game/Textures/T_Wood",
+            param_type="texture",
+        )
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "/Game/Textures/T_Wood" in code
+        assert "texture_parameter_value" in code
+
+    @pytest.mark.asyncio
+    async def test_rejects_non_numeric_scalar(self, server, mock_ue):
+        fn = _call(server, "ue_set_material_parameter")
+        result = await fn(
+            material_path="/Game/Materials/MI_Test",
+            param_name="Roughness",
+            value="not_a_number",
+            param_type="scalar",
+        )
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_rejects_bad_vector_components(self, server, mock_ue):
         fn = _call(server, "ue_set_material_parameter")
         result = await fn(
             material_path="/Game/Materials/MI_Test",
             param_name="BaseColor",
-            value="1.0,0.0,0.0,1.0",
+            value="1.0,abc,0.0",
             param_type="vector",
         )
         data = json.loads(result)

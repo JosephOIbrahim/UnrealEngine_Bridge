@@ -12,7 +12,7 @@ import logging
 
 from ._validation import (
     sanitize_label, sanitize_content_path, sanitize_property_name,
-    escape_for_fstring, make_error,
+    sanitize_material_value, escape_for_fstring, make_error,
 )
 
 logger = logging.getLogger("ue5-mcp.tools.materials")
@@ -100,7 +100,7 @@ else:
         valid_types = {"scalar", "vector", "texture"}
         if param_type not in valid_types:
             return make_error(f"param_type must be one of: {', '.join(sorted(valid_types))}")
-        if err := sanitize_label(value, "value"):
+        if err := sanitize_material_value(value, param_type, "value"):
             return make_error(err)
 
         safe_path = escape_for_fstring(material_path)

@@ -9,6 +9,7 @@ from ue_mcp.tools._validation import (
     sanitize_content_path,
     sanitize_object_path,
     sanitize_property_name,
+    sanitize_material_value,
     sanitize_console_command,
     sanitize_filename,
     escape_for_fstring,
@@ -255,3 +256,55 @@ class TestSanitizeFilename:
 
     def test_rejects_double_dot(self):
         assert sanitize_filename("..hidden") is not None
+
+
+# ── sanitize_material_value ───────────────────────────────────────────────
+
+class TestSanitizeMaterialValue:
+    # scalar
+    def test_scalar_valid_float(self):
+        assert sanitize_material_value("0.5", "scalar") is None
+
+    def test_scalar_valid_negative(self):
+        assert sanitize_material_value("-1.0", "scalar") is None
+
+    def test_scalar_valid_integer(self):
+        assert sanitize_material_value("1", "scalar") is None
+
+    def test_scalar_rejects_non_numeric(self):
+        assert sanitize_material_value("abc", "scalar") is not None
+
+    def test_scalar_rejects_empty(self):
+        assert sanitize_material_value("", "scalar") is not None
+
+    # vector
+    def test_vector_valid_rgb(self):
+        assert sanitize_material_value("1.0,0.0,0.0", "vector") is None
+
+    def test_vector_valid_rgba(self):
+        assert sanitize_material_value("1.0,0.5,0.0,1.0", "vector") is None
+
+    def test_vector_allows_spaces(self):
+        assert sanitize_material_value("1.0, 0.5, 0.0", "vector") is None
+
+    def test_vector_rejects_two_components(self):
+        assert sanitize_material_value("1.0,0.0", "vector") is not None
+
+    def test_vector_rejects_five_components(self):
+        assert sanitize_material_value("1.0,0.0,0.0,1.0,0.5", "vector") is not None
+
+    def test_vector_rejects_non_numeric_component(self):
+        assert sanitize_material_value("1.0,abc,0.0", "vector") is not None
+
+    def test_vector_rejects_empty(self):
+        assert sanitize_material_value("", "vector") is not None
+
+    # texture
+    def test_texture_valid_path(self):
+        assert sanitize_material_value("/Game/Textures/T_Wood", "texture") is None
+
+    def test_texture_rejects_invalid_path(self):
+        assert sanitize_material_value("not/valid", "texture") is not None
+
+    def test_texture_rejects_traversal(self):
+        assert sanitize_material_value("/Game/../etc/passwd", "texture") is not None
