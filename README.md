@@ -10,7 +10,7 @@ Forked from [TranslatorsGame/ue-bridge](https://github.com/JosephOIbrahim/transl
 |-----------|-------------|
 | **UEBridge plugin** | Drop-in UE5 plugin with Runtime + Editor modules |
 | **ViewportPerception plugin** | Viewport capture with metadata for AI perception |
-| **MCP server** | 8 tool modules for Claude Code integration |
+| **MCP server** | 11 tool modules (39 tools) for Claude Code integration |
 | **Bridge orchestrator** | Python game flow with USD-native file I/O |
 | **Behavioral tracking** | Response time, hesitation, burnout detection |
 
@@ -46,19 +46,84 @@ Add to your Claude Code MCP config:
 }
 ```
 
-## MCP Tools
+## MCP Tools (39)
 
+### Actors (6)
 | Tool | Purpose |
 |------|---------|
-| `spawn_actor` | Create actors in the level |
-| `delete_actor` | Remove actors |
-| `list_actors` | Query all actors |
-| `set_transform` | Position/rotate/scale actors |
-| `get_property` / `set_property` | Read/write UObject properties |
-| `ue_execute_python` | Run Python in UE editor context |
-| `load_asset` / `list_assets` | Asset management |
-| `get_level_info` / `load_level` | Level operations |
-| `compile_blueprint` | Blueprint compilation |
+| `ue_spawn_actor` | Create actors in the level |
+| `ue_delete_actor` | Remove actors |
+| `ue_list_actors` | Query all actors |
+| `ue_set_transform` | Position/rotate/scale actors |
+| `ue_duplicate_actor` | Duplicate an actor with offset |
+| `ue_get_actor_bounds` | Get axis-aligned bounding box |
+
+### Scene Understanding (4)
+| Tool | Purpose |
+|------|---------|
+| `ue_get_actor_details` | Full actor info: class, transform, components, tags, parent |
+| `ue_query_scene` | Filtered queries with class, tag, name, and spatial search |
+| `ue_get_component_details` | Deep component inspection (mesh, materials, lights) |
+| `ue_get_actor_hierarchy` | Parent-child attachment tree (max depth 10) |
+
+### Materials (4)
+| Tool | Purpose |
+|------|---------|
+| `ue_create_material_instance` | Create MaterialInstanceConstant from parent |
+| `ue_set_material_parameter` | Set scalar/vector/texture parameters |
+| `ue_get_material_parameters` | List all exposed parameters with values |
+| `ue_assign_material` | Apply material to actor mesh component |
+
+### Editor Utilities (5)
+| Tool | Purpose |
+|------|---------|
+| `ue_console_command` | Execute console commands (with safety blocklist) |
+| `ue_undo` / `ue_redo` | Undo/redo editor actions |
+| `ue_focus_actor` | Focus viewport on actor |
+| `ue_select_actors` | Set editor selection by label |
+
+### Properties (2)
+| Tool | Purpose |
+|------|---------|
+| `ue_get_property` | Read UObject properties |
+| `ue_set_property` | Write UObject properties |
+
+### Assets (3)
+| Tool | Purpose |
+|------|---------|
+| `ue_find_assets` | Search Content Browser |
+| `ue_create_material` | Create material with wired BaseColor/Roughness/Metallic nodes |
+| `ue_delete_asset` | Delete asset from Content Browser |
+
+### Level (4)
+| Tool | Purpose |
+|------|---------|
+| `ue_save_level` | Save current level |
+| `ue_get_level_info` | Level name and actor count |
+| `ue_load_level` | Load a level by content path |
+| `ue_get_world_info` | Streaming levels, world settings, game mode |
+
+### Blueprints (7)
+| Tool | Purpose |
+|------|---------|
+| `ue_create_blueprint` | Create Blueprint asset |
+| `ue_add_component` | Add component to live actor |
+| `ue_set_component_property` | Set property on actor component |
+| `ue_set_blueprint_defaults` | Set CDO default values |
+| `ue_compile_blueprint` | Compile and save Blueprint |
+| `ue_get_actor_components` | List components on actor |
+| `ue_spawn_blueprint` | Spawn Blueprint instance |
+
+### Motion Graphics (3)
+| Tool | Purpose |
+|------|---------|
+| `ue_create_cloner` | ClonerEffector instancing |
+| `ue_create_niagara_system` | Niagara particle system |
+| `ue_create_pcg_graph` | PCG procedural volume |
+
+### Perception (1+)
+| Tool | Purpose |
+|------|---------|
 | `ue_viewport_percept` | Viewport screenshot + metadata |
 
 ## Architecture
@@ -107,7 +172,7 @@ Source/UnrealEngineBridge/             # Game module
 ue_mcp/                                # MCP server
 ├── mcp_server.py                      # Entry point
 ├── remote_control_bridge.py           # UE5 HTTP wrapper
-└── tools/                             # Tool modules (8)
+└── tools/                             # Tool modules (11, 39 tools)
 
 bridge_orchestrator.py                 # Game flow orchestration
 usd_bridge.py                          # USD I/O + profile generation
