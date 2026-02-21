@@ -4,6 +4,8 @@ Provides:
 - AST-based Python code sandboxing for execute_python
 - String sanitization for actor labels, class names, paths
 - Path validation for UE content paths and blueprint paths
+- Console command sanitization
+- f-string escaping for code generation
 """
 
 from __future__ import annotations
@@ -181,3 +183,57 @@ def make_error(message: str) -> str:
     """Create a JSON error response string."""
     import json
     return json.dumps({"error": message}, indent=2)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CODE GENERATION HELPERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def escape_for_fstring(s: str) -> str:
+    """Escape a string for safe embedding in an f-string Python code template.
+
+    Handles backslashes, quotes, and newlines to prevent injection
+    when building UE5 Python scripts via f-string templates.
+    """
+    return s.replace("\\", "\\\\").replace('"', '\\"').replace("'", "\\'").replace("\n", "\\n")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONSOLE COMMAND SANITIZATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_BLOCKED_CONSOLE_COMMANDS = frozenset({
+    "exit", "quit", "crash", "gpf", "debug crash",
+    "restartlevel", "open", "servertravel",
+    "killall", "disconnect", "reconnect",
+})
+
+_SAFE_CONSOLE_RE = re.compile(r'^[\w\s\.\-=,/]+$')
+
+
+def sanitize_console_command(cmd: str, param_name: str = "command") -> Optional[str]:
+    """Validate a UE console command. Returns error message or None if valid."""
+    if not cmd:
+        return f"{param_name} cannot be empty"
+    if len(cmd) > 512:
+        return f"{param_name} too long ({len(cmd)} chars, max 512)"
+    cmd_lower = cmd.strip().lower()
+    for blocked in _BLOCKED_CONSOLE_COMMANDS:
+        if cmd_lower == blocked or cmd_lower.startswith(blocked + " "):
+            return f"{param_name} '{blocked}' is blocked for safety"
+    if not _SAFE_CONSOLE_RE.match(cmd):
+        return f"{param_name} contains invalid characters"
+    return None
+
+
+def sanitize_filename(name: str, param_name: str = "filename") -> Optional[str]:
+    """Validate a filename (no path separators). Returns error message or None if valid."""
+    if not name:
+        return f"{param_name} cannot be empty"
+    if len(name) > 256:
+        return f"{param_name} too long ({len(name)} chars, max 256)"
+    if "/" in name or "\\" in name:
+        return f"{param_name} must not contain path separators"
+    if ".." in name:
+        return f"{param_name} must not contain '..'"
+    return None

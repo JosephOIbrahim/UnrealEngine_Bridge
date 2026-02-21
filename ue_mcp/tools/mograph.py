@@ -11,12 +11,7 @@ import logging
 
 logger = logging.getLogger("ue5-mcp.tools.mograph")
 
-from ._validation import sanitize_label, sanitize_content_path, make_error
-
-
-def _escape_for_fstring(s: str) -> str:
-    """Escape a string for safe embedding in an f-string Python code template."""
-    return s.replace("\\", "\\\\").replace('"', '\\"').replace("'", "\\'").replace("\n", "\\n")
+from ._validation import sanitize_label, sanitize_content_path, escape_for_fstring, make_error
 
 
 def register(server, ue):
@@ -54,7 +49,7 @@ def register(server, ue):
             if err := sanitize_label(label):
                 return make_error(err)
 
-        label_str = _escape_for_fstring(label or "ClaudeCloner")
+        label_str = escape_for_fstring(label or "ClaudeCloner")
         code = f"""
 import unreal
 
@@ -110,10 +105,10 @@ else:
             if err := sanitize_label(label):
                 return make_error(err)
 
-        label_str = _escape_for_fstring(label or "ClaudeNiagara")
+        label_str = escape_for_fstring(label or "ClaudeNiagara")
         asset_line = ""
         if system_asset:
-            safe_asset = _escape_for_fstring(system_asset)
+            safe_asset = escape_for_fstring(system_asset)
             asset_line = f"""
     system = unreal.EditorAssetLibrary.load_asset("{safe_asset}")
     if system:
@@ -166,7 +161,7 @@ else:
             if err := sanitize_label(label):
                 return make_error(err)
 
-        label_str = _escape_for_fstring(label or "ClaudePCG")
+        label_str = escape_for_fstring(label or "ClaudePCG")
         code = f"""
 import unreal
 

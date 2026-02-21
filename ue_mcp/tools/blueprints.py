@@ -16,13 +16,8 @@ logger = logging.getLogger("ue5-mcp.tools.blueprints")
 
 from ._validation import (
     sanitize_class_name, sanitize_label, sanitize_content_path,
-    sanitize_property_name, make_error,
+    sanitize_property_name, escape_for_fstring, make_error,
 )
-
-
-def _escape_for_fstring(s: str) -> str:
-    """Escape a string for safe embedding in an f-string Python code template."""
-    return s.replace("\\", "\\\\").replace('"', '\\"').replace("'", "\\'").replace("\n", "\\n")
 
 
 def register(server, ue):
@@ -51,9 +46,9 @@ def register(server, ue):
         if err := sanitize_class_name(parent_class, "parent_class"):
             return make_error(err)
 
-        safe_name = _escape_for_fstring(name)
-        safe_folder = _escape_for_fstring(folder)
-        safe_class = _escape_for_fstring(parent_class)
+        safe_name = escape_for_fstring(name)
+        safe_folder = escape_for_fstring(folder)
+        safe_class = escape_for_fstring(parent_class)
         code = f"""
 import unreal
 
@@ -102,9 +97,9 @@ else:
                 return make_error(err)
 
         comp_name = component_name or component_class.replace("Component", "")
-        safe_label = _escape_for_fstring(actor_label)
-        safe_cc = _escape_for_fstring(component_class)
-        safe_cn = _escape_for_fstring(comp_name)
+        safe_label = escape_for_fstring(actor_label)
+        safe_cc = escape_for_fstring(component_class)
+        safe_cn = escape_for_fstring(comp_name)
         code = f"""
 import unreal, json
 
@@ -171,10 +166,10 @@ else:
         except json.JSONDecodeError as e:
             return make_error(f"Invalid JSON value: {e}")
 
-        safe_label = _escape_for_fstring(actor_label)
-        safe_cc = _escape_for_fstring(component_class)
-        safe_prop = _escape_for_fstring(property_name)
-        safe_val = _escape_for_fstring(value)
+        safe_label = escape_for_fstring(actor_label)
+        safe_cc = escape_for_fstring(component_class)
+        safe_prop = escape_for_fstring(property_name)
+        safe_val = escape_for_fstring(value)
         code = f"""
 import unreal, json
 
@@ -243,8 +238,8 @@ else:
         except json.JSONDecodeError as e:
             return make_error(f"Invalid JSON in properties: {e}")
 
-        safe_bp = _escape_for_fstring(blueprint_path)
-        safe_props = _escape_for_fstring(properties)
+        safe_bp = escape_for_fstring(blueprint_path)
+        safe_props = escape_for_fstring(properties)
         code = f"""
 import unreal, json
 
@@ -283,7 +278,7 @@ else:
         if err := sanitize_content_path(blueprint_path, "blueprint_path"):
             return make_error(err)
 
-        safe_bp = _escape_for_fstring(blueprint_path)
+        safe_bp = escape_for_fstring(blueprint_path)
         code = f"""
 import unreal, json
 
@@ -312,7 +307,7 @@ else:
         if err := sanitize_label(actor_label, "actor_label"):
             return make_error(err)
 
-        safe_label = _escape_for_fstring(actor_label)
+        safe_label = escape_for_fstring(actor_label)
         code = f"""
 import unreal, json
 
@@ -369,10 +364,10 @@ else:
             if err := sanitize_label(label):
                 return make_error(err)
 
-        safe_bp = _escape_for_fstring(blueprint_path)
+        safe_bp = escape_for_fstring(blueprint_path)
         label_line = ""
         if label:
-            safe_lbl = _escape_for_fstring(label)
+            safe_lbl = escape_for_fstring(label)
             label_line = f'\n    actor.set_actor_label("{safe_lbl}")'
         code = f"""
 import unreal, json

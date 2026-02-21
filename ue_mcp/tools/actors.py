@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 import logging
 
-from ._validation import sanitize_class_name, sanitize_label, sanitize_object_path, make_error
+from ._validation import (
+    sanitize_class_name, sanitize_label, sanitize_object_path,
+    escape_for_fstring, make_error,
+)
 
 logger = logging.getLogger("ue5-mcp.tools.actors")
 
@@ -111,4 +114,103 @@ def register(server, ue):
         result = await ue.set_actor_transform(
             actor_path, location=location, rotation=rotation, scale=scale
         )
+        return json.dumps(result, indent=2)
+
+    @server.tool(
+        name="ue_duplicate_actor",
+        description="Duplicate an actor with an optional position offset.",
+        annotations={
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+        },
+    )
+    async def duplicate_actor(
+        actor_label: str,
+        offset_x: float = 200.0,
+        offset_y: float = 0.0,
+        offset_z: float = 0.0,
+    ) -> str:
+        """Duplicate an actor by label and offset the copy."""
+        if err := sanitize_label(actor_label, "actor_label"):
+            return make_error(err)
+
+        safe_label = escape_for_fstring(actor_label)
+        code = f"""
+import unreal, json
+
+subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+actors = subsystem.get_all_level_actors()
+actor = None
+for a in actors:
+    if a.get_actor_label() == "{safe_label}":
+        actor = a
+        break
+
+if actor is None:
+    print("RESULT:" + json.dumps({{"error": "Actor not found: {safe_label}"}}))
+else:
+    # Select and duplicate
+    subsystem.set_selected_level_actors([actor])
+    duplicated = subsystem.duplicate_selected_actors()
+    if duplicated:
+        new_actor = duplicated[0]
+        loc = new_actor.get_actor_location()
+        new_actor.set_actor_location(
+            unreal.Vector(loc.x + {offset_x}, loc.y + {offset_y}, loc.z + {offset_z}),
+            False, False
+        )
+        print("RESULT:" + json.dumps({{
+            "duplicated": new_actor.get_actor_label(),
+            "path": new_actor.get_path_name(),
+            "class": new_actor.get_class().get_name(),
+            "location": {{
+                "x": loc.x + {offset_x},
+                "y": loc.y + {offset_y},
+                "z": loc.z + {offset_z},
+            }},
+        }}))
+    else:
+        print("RESULT:" + json.dumps({{"error": "Duplication failed"}}))
+"""
+        result = await ue.execute_python(code)
+        return json.dumps(result, indent=2)
+
+    @server.tool(
+        name="ue_get_actor_bounds",
+        description="Get the axis-aligned bounding box of an actor.",
+        annotations={
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+        },
+    )
+    async def get_actor_bounds(actor_label: str) -> str:
+        """Get bounding box origin and extent for an actor."""
+        if err := sanitize_label(actor_label, "actor_label"):
+            return make_error(err)
+
+        safe_label = escape_for_fstring(actor_label)
+        code = f"""
+import unreal, json
+
+subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+actors = subsystem.get_all_level_actors()
+actor = None
+for a in actors:
+    if a.get_actor_label() == "{safe_label}":
+        actor = a
+        break
+
+if actor is None:
+    print("RESULT:" + json.dumps({{"error": "Actor not found: {safe_label}"}}))
+else:
+    origin, extent = actor.get_actor_bounds(False)
+    print("RESULT:" + json.dumps({{
+        "label": actor.get_actor_label(),
+        "origin": {{"x": origin.x, "y": origin.y, "z": origin.z}},
+        "extent": {{"x": extent.x, "y": extent.y, "z": extent.z}},
+    }}))
+"""
+        result = await ue.execute_python(code)
         return json.dumps(result, indent=2)

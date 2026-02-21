@@ -7,12 +7,10 @@ import logging
 
 logger = logging.getLogger("ue5-mcp.tools.assets")
 
-from ._validation import sanitize_label, sanitize_class_name, make_error
-
-
-def _escape_for_fstring(s: str) -> str:
-    """Escape a string for safe embedding in an f-string Python code template."""
-    return s.replace("\\", "\\\\").replace('"', '\\"').replace("'", "\\'").replace("\n", "\\n")
+from ._validation import (
+    sanitize_label, sanitize_class_name, sanitize_content_path,
+    escape_for_fstring, make_error,
+)
 
 
 def register(server, ue):
@@ -57,9 +55,9 @@ def register(server, ue):
         if err := sanitize_label(name, "name"):
             return make_error(err)
 
-        safe_name = _escape_for_fstring(name)
+        safe_name = escape_for_fstring(name)
         code = f"""
-import unreal
+import unreal, json
 
 # Create material asset
 asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
@@ -67,14 +65,58 @@ factory = unreal.MaterialFactoryNew()
 material = asset_tools.create_asset("{safe_name}", "/Game/Materials", unreal.Material, factory)
 
 if material:
-    # Set up base color via constant expression
-    editor_subsystem = unreal.get_editor_subsystem(unreal.MaterialEditingSubsystem) if hasattr(unreal, 'MaterialEditingSubsystem') else None
+    mel = unreal.MaterialEditingLibrary
 
-    # Save the asset
+    # BaseColor constant expression
+    base_color_node = mel.create_material_expression(material, unreal.MaterialExpressionConstant3Vector, -300, 0)
+    if base_color_node:
+        base_color_node.set_editor_property("Constant", unreal.LinearColor({base_color_r}, {base_color_g}, {base_color_b}, 1.0))
+        mel.connect_material_property(base_color_node, "", unreal.MaterialProperty.MP_BASE_COLOR)
+
+    # Roughness constant expression
+    roughness_node = mel.create_material_expression(material, unreal.MaterialExpressionConstant, -300, 200)
+    if roughness_node:
+        roughness_node.set_editor_property("R", {roughness})
+        mel.connect_material_property(roughness_node, "", unreal.MaterialProperty.MP_ROUGHNESS)
+
+    # Metallic constant expression
+    metallic_node = mel.create_material_expression(material, unreal.MaterialExpressionConstant, -300, 400)
+    if metallic_node:
+        metallic_node.set_editor_property("R", {metallic})
+        mel.connect_material_property(metallic_node, "", unreal.MaterialProperty.MP_METALLIC)
+
+    mel.recompile_material(material)
     unreal.EditorAssetLibrary.save_asset("/Game/Materials/{safe_name}")
-    print("RESULT:CREATED /Game/Materials/{safe_name}")
+    print("RESULT:" + json.dumps({{"created": "/Game/Materials/{safe_name}", "base_color": [{base_color_r}, {base_color_g}, {base_color_b}], "roughness": {roughness}, "metallic": {metallic}}}))
 else:
-    print("RESULT:FAILED")
+    print("RESULT:" + json.dumps({{"error": "Failed to create material"}}))
+"""
+        result = await ue.execute_python(code)
+        return json.dumps(result, indent=2)
+
+    @server.tool(
+        name="ue_delete_asset",
+        description="Delete an asset from the Content Browser by its content path. This is destructive and cannot be undone.",
+        annotations={
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": True,
+        },
+    )
+    async def delete_asset(asset_path: str) -> str:
+        """Delete an asset. asset_path is a content path like /Game/Materials/MyMaterial."""
+        if err := sanitize_content_path(asset_path, "asset_path"):
+            return make_error(err)
+
+        safe_path = escape_for_fstring(asset_path)
+        code = f"""
+import unreal, json
+
+if not unreal.EditorAssetLibrary.does_asset_exist("{safe_path}"):
+    print("RESULT:" + json.dumps({{"error": "Asset not found: {safe_path}"}}))
+else:
+    success = unreal.EditorAssetLibrary.delete_asset("{safe_path}")
+    print("RESULT:" + json.dumps({{"deleted": success, "asset": "{safe_path}"}}))
 """
         result = await ue.execute_python(code)
         return json.dumps(result, indent=2)

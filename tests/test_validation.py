@@ -9,6 +9,9 @@ from ue_mcp.tools._validation import (
     sanitize_content_path,
     sanitize_object_path,
     sanitize_property_name,
+    sanitize_console_command,
+    sanitize_filename,
+    escape_for_fstring,
     make_error,
 )
 
@@ -165,3 +168,90 @@ class TestMakeError:
         import json
         result = json.loads(make_error("test error"))
         assert result["error"] == "test error"
+
+
+# ── escape_for_fstring ──────────────────────────────────────────────────────
+
+class TestEscapeForFstring:
+    def test_escapes_backslash(self):
+        assert escape_for_fstring("a\\b") == "a\\\\b"
+
+    def test_escapes_double_quote(self):
+        assert escape_for_fstring('a"b') == 'a\\"b'
+
+    def test_escapes_single_quote(self):
+        assert escape_for_fstring("a'b") == "a\\'b"
+
+    def test_escapes_newline(self):
+        assert escape_for_fstring("a\nb") == "a\\nb"
+
+    def test_plain_string_unchanged(self):
+        assert escape_for_fstring("hello_world") == "hello_world"
+
+    def test_combined_escaping(self):
+        result = escape_for_fstring('path\\to\n"file"')
+        assert "\\\\" in result
+        assert "\\n" in result
+        assert '\\"' in result
+
+
+# ── sanitize_console_command ────────────────────────────────────────────────
+
+class TestSanitizeConsoleCommand:
+    def test_valid_command(self):
+        assert sanitize_console_command("stat fps") is None
+
+    def test_valid_cvar(self):
+        assert sanitize_console_command("r.SetRes 1920x1080") is None
+
+    def test_blocks_exit(self):
+        assert sanitize_console_command("exit") is not None
+
+    def test_blocks_quit(self):
+        assert sanitize_console_command("quit") is not None
+
+    def test_blocks_crash(self):
+        assert sanitize_console_command("crash") is not None
+
+    def test_blocks_gpf(self):
+        assert sanitize_console_command("gpf") is not None
+
+    def test_blocks_open_with_args(self):
+        assert sanitize_console_command("open /Game/Maps/Test") is not None
+
+    def test_blocks_killall(self):
+        assert sanitize_console_command("killall") is not None
+
+    def test_case_insensitive(self):
+        assert sanitize_console_command("EXIT") is not None
+
+    def test_blocks_special_chars(self):
+        assert sanitize_console_command("stat fps; rm -rf /") is not None
+
+    def test_empty(self):
+        assert sanitize_console_command("") is not None
+
+    def test_too_long(self):
+        assert sanitize_console_command("x" * 513) is not None
+
+
+# ── sanitize_filename ──────────────────────────────────────────────────────
+
+class TestSanitizeFilename:
+    def test_valid_filename(self):
+        assert sanitize_filename("MyMaterial_01") is None
+
+    def test_empty(self):
+        assert sanitize_filename("") is not None
+
+    def test_too_long(self):
+        assert sanitize_filename("x" * 257) is not None
+
+    def test_rejects_forward_slash(self):
+        assert sanitize_filename("path/file") is not None
+
+    def test_rejects_backslash(self):
+        assert sanitize_filename("path\\file") is not None
+
+    def test_rejects_double_dot(self):
+        assert sanitize_filename("..hidden") is not None
