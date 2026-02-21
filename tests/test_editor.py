@@ -3,10 +3,12 @@
 import ast
 import json
 import pytest
+from mcp.server.fastmcp import FastMCP
 
 from ue_mcp.tools._validation import (
     sanitize_label, sanitize_console_command, escape_for_fstring,
 )
+from ue_mcp.tools.editor import register
 
 
 class TestSanitizeConsoleCommand:
@@ -152,3 +154,144 @@ class TestSelectActorsValidation:
     def test_rejects_invalid_json(self):
         with pytest.raises(json.JSONDecodeError):
             json.loads("not valid json [")
+
+
+# --- Async integration tests ---
+
+
+@pytest.fixture
+def server(mock_ue):
+    s = FastMCP("test")
+    register(s, mock_ue)
+    return s
+
+
+def _call(server, name):
+    return server._tool_manager._tools[name].fn
+
+
+class TestConsoleCommandAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_console_command")
+        result = await fn(command="stat fps")
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_code_contains_command(self, server, mock_ue):
+        fn = _call(server, "ue_console_command")
+        await fn(command="show collision")
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "show collision" in code
+        assert "execute_console_command" in code
+
+    @pytest.mark.asyncio
+    async def test_rejects_exit(self, server, mock_ue):
+        fn = _call(server, "ue_console_command")
+        result = await fn(command="exit")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_rejects_quit(self, server, mock_ue):
+        fn = _call(server, "ue_console_command")
+        result = await fn(command="quit")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+
+class TestUndoAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_undo")
+        result = await fn()
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_code_contains_undo(self, server, mock_ue):
+        fn = _call(server, "ue_undo")
+        await fn()
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "undo" in code.lower()
+
+
+class TestRedoAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_redo")
+        result = await fn()
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_code_contains_redo(self, server, mock_ue):
+        fn = _call(server, "ue_redo")
+        await fn()
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "redo" in code.lower()
+
+
+class TestFocusActorAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_focus_actor")
+        result = await fn(actor_label="MyCube")
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_code_contains_label(self, server, mock_ue):
+        fn = _call(server, "ue_focus_actor")
+        await fn(actor_label="TestActor")
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "TestActor" in code
+
+    @pytest.mark.asyncio
+    async def test_rejects_empty_label(self, server, mock_ue):
+        fn = _call(server, "ue_focus_actor")
+        result = await fn(actor_label="")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+
+class TestSelectActorsAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_select_actors")
+        result = await fn(actor_labels_json='["Actor1", "Actor2"]')
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_rejects_non_array_json(self, server, mock_ue):
+        fn = _call(server, "ue_select_actors")
+        result = await fn(actor_labels_json='"just a string"')
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_json(self, server, mock_ue):
+        fn = _call(server, "ue_select_actors")
+        result = await fn(actor_labels_json="not valid json [")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_label_in_array(self, server, mock_ue):
+        fn = _call(server, "ue_select_actors")
+        result = await fn(actor_labels_json='["valid", "bad;injection"]')
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()

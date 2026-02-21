@@ -3,10 +3,12 @@
 import ast
 import json
 import pytest
+from mcp.server.fastmcp import FastMCP
 
 from ue_mcp.tools._validation import (
     sanitize_label, sanitize_content_path, escape_for_fstring,
 )
+from ue_mcp.tools.materials import register
 
 
 class TestCreateMaterialInstanceValidation:
@@ -162,3 +164,173 @@ else:
             print("RESULT:" + json.dumps({{"assigned": True}}))
 """
         ast.parse(code)
+
+
+# --- Async integration tests ---
+
+
+@pytest.fixture
+def server(mock_ue):
+    s = FastMCP("test")
+    register(s, mock_ue)
+    return s
+
+
+def _call(server, name):
+    return server._tool_manager._tools[name].fn
+
+
+class TestCreateMaterialInstanceAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_create_material_instance")
+        result = await fn(name="MI_Chrome", parent_material="/Game/Materials/M_Chrome")
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_code_contains_name_and_parent(self, server, mock_ue):
+        fn = _call(server, "ue_create_material_instance")
+        await fn(name="MI_Gold", parent_material="/Game/Materials/M_Gold")
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "MI_Gold" in code
+        assert "/Game/Materials/M_Gold" in code
+
+    @pytest.mark.asyncio
+    async def test_rejects_empty_name(self, server, mock_ue):
+        fn = _call(server, "ue_create_material_instance")
+        result = await fn(name="", parent_material="/Game/Materials/M_Chrome")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_parent_path(self, server, mock_ue):
+        fn = _call(server, "ue_create_material_instance")
+        result = await fn(name="MI_Test", parent_material="not/valid")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+
+class TestSetMaterialParameterAsync:
+    @pytest.mark.asyncio
+    async def test_scalar_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_set_material_parameter")
+        result = await fn(
+            material_path="/Game/Materials/MI_Test",
+            param_name="Roughness",
+            value="0.5",
+            param_type="scalar",
+        )
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_code_contains_param_name(self, server, mock_ue):
+        fn = _call(server, "ue_set_material_parameter")
+        await fn(
+            material_path="/Game/Materials/MI_Test",
+            param_name="Roughness",
+            value="0.5",
+            param_type="scalar",
+        )
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "Roughness" in code
+        assert "scalar_parameter_value" in code
+
+    @pytest.mark.asyncio
+    async def test_vector_value_rejected_by_sanitizer(self, server, mock_ue):
+        """Vector values with commas are rejected by sanitize_label on value param."""
+        fn = _call(server, "ue_set_material_parameter")
+        result = await fn(
+            material_path="/Game/Materials/MI_Test",
+            param_name="BaseColor",
+            value="1.0,0.0,0.0,1.0",
+            param_type="vector",
+        )
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_param_type(self, server, mock_ue):
+        fn = _call(server, "ue_set_material_parameter")
+        result = await fn(
+            material_path="/Game/Materials/MI_Test",
+            param_name="Roughness",
+            value="0.5",
+            param_type="invalid",
+        )
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_material_path(self, server, mock_ue):
+        fn = _call(server, "ue_set_material_parameter")
+        result = await fn(
+            material_path="../etc/passwd",
+            param_name="Roughness",
+            value="0.5",
+        )
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+
+class TestGetMaterialParametersAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_get_material_parameters")
+        result = await fn(material_path="/Game/Materials/MI_Test")
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_path(self, server, mock_ue):
+        fn = _call(server, "ue_get_material_parameters")
+        result = await fn(material_path="bad path")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+
+class TestAssignMaterialAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_assign_material")
+        result = await fn(
+            actor_label="MyCube",
+            material_path="/Game/Materials/M_Chrome",
+        )
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_rejects_negative_slot(self, server, mock_ue):
+        fn = _call(server, "ue_assign_material")
+        result = await fn(
+            actor_label="MyCube",
+            material_path="/Game/Materials/M_Chrome",
+            slot_index=-1,
+        )
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_rejects_slot_over_63(self, server, mock_ue):
+        fn = _call(server, "ue_assign_material")
+        result = await fn(
+            actor_label="MyCube",
+            material_path="/Game/Materials/M_Chrome",
+            slot_index=64,
+        )
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()

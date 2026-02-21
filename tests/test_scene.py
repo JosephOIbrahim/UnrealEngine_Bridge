@@ -3,8 +3,10 @@
 import ast
 import json
 import pytest
+from mcp.server.fastmcp import FastMCP
 
 from ue_mcp.tools._validation import sanitize_label, escape_for_fstring
+from ue_mcp.tools.scene import register
 
 
 class TestGetActorDetailsValidation:
@@ -148,3 +150,130 @@ else:
     print("RESULT:" + json.dumps(tree))
 """
         ast.parse(code)
+
+
+# --- Async integration tests ---
+
+
+@pytest.fixture
+def server(mock_ue):
+    s = FastMCP("test")
+    register(s, mock_ue)
+    return s
+
+
+def _call(server, name):
+    return server._tool_manager._tools[name].fn
+
+
+class TestGetActorDetailsAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_get_actor_details")
+        result = await fn(actor_label="MyCube")
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_code_contains_label(self, server, mock_ue):
+        fn = _call(server, "ue_get_actor_details")
+        await fn(actor_label="TestActor")
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "TestActor" in code
+        assert "get_actor_label" in code
+
+    @pytest.mark.asyncio
+    async def test_rejects_empty_label(self, server, mock_ue):
+        fn = _call(server, "ue_get_actor_details")
+        result = await fn(actor_label="")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_rejects_injection(self, server, mock_ue):
+        fn = _call(server, "ue_get_actor_details")
+        result = await fn(actor_label='test"; import os')
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+
+class TestQuerySceneAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path_no_filters(self, server, mock_ue):
+        fn = _call(server, "ue_query_scene")
+        result = await fn()
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_with_class_filter(self, server, mock_ue):
+        fn = _call(server, "ue_query_scene")
+        result = await fn(class_filter="PointLight")
+        data = json.loads(result)
+        assert "error" not in data
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "PointLight" in code
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_class(self, server, mock_ue):
+        fn = _call(server, "ue_query_scene")
+        result = await fn(class_filter="1Bad;Class")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+
+class TestGetComponentDetailsAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_get_component_details")
+        result = await fn(actor_label="MyCube", component_name="StaticMeshComponent0")
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_rejects_bad_actor_label(self, server, mock_ue):
+        fn = _call(server, "ue_get_component_details")
+        result = await fn(actor_label="", component_name="Mesh")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_rejects_bad_component_name(self, server, mock_ue):
+        fn = _call(server, "ue_get_component_details")
+        result = await fn(actor_label="MyCube", component_name='bad"; drop')
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
+
+
+class TestGetActorHierarchyAsync:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, server, mock_ue):
+        fn = _call(server, "ue_get_actor_hierarchy")
+        result = await fn(actor_label="Root")
+        data = json.loads(result)
+        assert "error" not in data
+        mock_ue.execute_python.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_code_contains_label(self, server, mock_ue):
+        fn = _call(server, "ue_get_actor_hierarchy")
+        await fn(actor_label="Root")
+        code = mock_ue.execute_python.call_args[0][0]
+        assert "Root" in code
+        assert "build_tree" in code
+
+    @pytest.mark.asyncio
+    async def test_rejects_empty_label(self, server, mock_ue):
+        fn = _call(server, "ue_get_actor_hierarchy")
+        result = await fn(actor_label="")
+        data = json.loads(result)
+        assert "error" in data
+        mock_ue.execute_python.assert_not_awaited()
