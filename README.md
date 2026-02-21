@@ -1,265 +1,119 @@
-# Translators Bridge
+# UnrealEngine Bridge
 
-**An Unreal Engine plugin that connects your game to The Translators -- a cognitive profiling experience where personality emerges from play, not questionnaires.**
+**An agentic AI bridge connecting Claude Code to Unreal Engine 5.7.** Claude can perceive, reason about, and manipulate UE5 scenes through MCP tools, a file-based bridge protocol, and the Remote Control API.
 
-Players answer eight questions. Their choices, timing, and hesitation patterns generate a deterministic cognitive profile exportable as USD. The same answers always produce the same profile.
+Forked from [TranslatorsGame/ue-bridge](https://github.com/JosephOIbrahim/translators-game). This version focuses on expanding agentic capabilities.
 
----
+## What's Included
 
-## What's In the Box
-
-| Component | What It Does |
+| Component | Description |
 |-----------|-------------|
-| **UEBridge plugin** | Drop-in UE plugin with Runtime + Editor modules |
-| **Question delivery system** | Presents questions, collects answers, tracks behavioral signals |
-| **Profile engine** | Generates deterministic cognitive profiles from player responses |
-| **USD export** | Profiles export as `.usda` files for pipeline integration |
-| **Full UI kit** | Title screen, question display, option buttons, progress indicator, finale screen |
-
----
+| **UEBridge plugin** | Drop-in UE5 plugin with Runtime + Editor modules |
+| **ViewportPerception plugin** | Viewport capture with metadata for AI perception |
+| **MCP server** | 8 tool modules for Claude Code integration |
+| **Bridge orchestrator** | Python game flow with USD-native file I/O |
+| **Behavioral tracking** | Response time, hesitation, burnout detection |
 
 ## Quick Start
 
-### 1. Enable the Plugin
+### 1. UE5 Setup
 
-1. Copy `Plugins/UEBridge/` into your project's `Plugins/` folder
-2. Open your project in Unreal Editor
-3. Go to **Edit > Plugins**, search for "Translators Bridge", and enable it
-4. Restart the editor when prompted
+1. Open `UnrealEngine_Bridge.uproject` in UE 5.7
+2. Go to **Edit > Plugins**, search "UE Bridge", enable it
+3. Restart the editor
+4. Verify Remote Control is active on `localhost:30010`
 
-### 2. Add the Bridge to Your Level
-
-**Option A: Blueprint (recommended)**
-
-1. Create a new Actor Blueprint
-2. Add a **Bridge Component** to it
-3. Place the actor in your level
-4. In the Details panel, bind the events you need:
-
-| Event | When It Fires |
-|-------|--------------|
-| `On Bridge Ready` | Connection established, ready to start |
-| `On Question Received` | A new question is ready to display |
-| `On Transition Received` | Moving between questions |
-| `On Finale Received` | All questions answered, profile ready |
-
-**Option B: C++ Subsystem (advanced)**
-
-The plugin provides `UUEBridgeSubsystem` -- a GameInstance subsystem you can access from anywhere:
-
-```cpp
-#include "UEBridgeSubsystem.h"
-
-UUEBridgeSubsystem* Bridge = GetGameInstance()->GetSubsystem<UUEBridgeSubsystem>();
-Bridge->StartGame();
-```
-
-### 3. Start the Python Backend
-
-In a terminal, from the project root:
+### 2. Python Setup
 
 ```bash
+pip install -e ".[dev]"
 python bridge_orchestrator.py
 ```
 
-The bridge communicates through files in `~/.translators/`. No network configuration needed.
+### 3. MCP Integration
 
----
+Add to your Claude Code MCP config:
 
-## How It Works
-
-```
-  Python Backend                    Unreal Engine
-  ──────────────                    ──────────────
-  bridge_orchestrator.py     ←→     UEBridge Plugin
-         │                                  │
-    Writes questions           Reads questions, shows UI
-    to ~/.translators/         Writes answers back
-         │                                  │
-    Reads answers              Tracks response time,
-    Generates profile          hesitation, click patterns
-         │                                  │
-    Exports .usda              Displays cognitive profile
+```json
+{
+  "mcpServers": {
+    "ue-bridge": {
+      "command": "python",
+      "args": ["-m", "ue_mcp.mcp_server"],
+      "cwd": "C:/Users/User/UnrealEngine_Bridge"
+    }
+  }
+}
 ```
 
-The bridge uses plain files -- no sockets, no ports, no network setup. It just works.
+## MCP Tools
 
----
+| Tool | Purpose |
+|------|---------|
+| `spawn_actor` | Create actors in the level |
+| `delete_actor` | Remove actors |
+| `list_actors` | Query all actors |
+| `set_transform` | Position/rotate/scale actors |
+| `get_property` / `set_property` | Read/write UObject properties |
+| `ue_execute_python` | Run Python in UE editor context |
+| `load_asset` / `list_assets` | Asset management |
+| `get_level_info` / `load_level` | Level operations |
+| `compile_blueprint` | Blueprint compilation |
+| `ue_viewport_percept` | Viewport screenshot + metadata |
 
-## The UI Widgets
-
-All widgets are fully programmatic -- no Blueprint assets required. They build themselves in C++ and render with The Translators' signature dark-cyan aesthetic.
-
-| Widget | Purpose |
-|--------|---------|
-| `W_TitleScreen` | "The Translators" title with pulsing "Press ENTER to begin" prompt |
-| `W_ConnectingScreen` | "Connecting to Claude Code..." status display |
-| `W_QuestionDisplay` | Question text + answer buttons + depth tier label + progress |
-| `W_OptionButton` | Individual answer button with hover/press states |
-| `W_ProgressIndicator` | 8-dot progress bar (cyan = done, gold = current, gray = remaining) |
-| `W_FinaleScreen` | Full cognitive profile display with traits, scores, and insights |
-
-### Customizing the Look
-
-Every color and font comes from `FTranslatorsStyle` -- a registered Slate style set. To override colors without touching code:
-
-**In Blueprint:** Each widget exposes style properties (Background Color, Text Color, etc.) in the Details panel under **Translators | Style**.
-
-**In C++:** Override the style set:
-
-```cpp
-#include "TranslatorsStyle.h"
-
-// Get any named color
-FLinearColor Cyan = FTranslatorsStyle::GetColor("Color.Cyan");
-
-// Get any named font
-FSlateFontInfo TitleFont = FTranslatorsStyle::GetFont("Font.Title");
-```
-
-### Color Palette
-
-| Token | Color | Used For |
-|-------|-------|----------|
-| `Color.Cyan` | ![#5cffdb](https://via.placeholder.com/12/5cffdb/5cffdb.png) `#5cffdb` | Titles, accents, completed progress |
-| `Color.Gold` | ![#ffcc33](https://via.placeholder.com/12/ffcc33/ffcc33.png) `#ffcc33` | Current progress indicator |
-| `Color.Background` | Near-black | All screen backgrounds |
-| `Color.TextPrimary` | Off-white | Body text |
-| `Color.TextDim` | Mid-gray | Subtitles, secondary info |
-
-### Font Scale
-
-| Token | Size | Used For |
-|-------|------|----------|
-| `Font.Title` | 56 | Title screen heading |
-| `Font.Heading` | 36 | Finale screen heading |
-| `Font.Question` | 24 | Question text |
-| `Font.Subtitle` | 18 | Subtitles |
-| `Font.Body` | 16 | General text |
-| `Font.Caption` | 12 | Labels, headers |
-
-All fonts use `FCoreStyle` defaults -- DPI-aware, no hardcoded font files.
-
----
-
-## Input
-
-The title screen accepts **Enter** or **Space** to start. It also supports **Enhanced Input** -- assign a `UInputAction` to the `StartInputAction` property in the Details panel if your project uses the Enhanced Input system.
-
-Answer buttons are mouse/touch clickable with hover and press feedback.
-
----
-
-## The Cognitive Profile
-
-After eight questions, the engine generates a profile like this:
+## Architecture
 
 ```
-DIMENSIONS
-───────────────────────────────
-cognitive_load       Synthesizer    72%
-  Prefers to integrate multiple perspectives
-
-decision_making      Adaptive       65%
-  Shifts approach based on context
-
-communication        Direct         80%
-  Values clarity and conciseness
-
-INSIGHTS
-───────────────────────────────
-  Gravitates toward systematic decomposition
-  Responds well to structured frameworks
-  Shows high tolerance for ambiguity
-
-[TRANSLATORS:101bfab5]
+Claude Code (MCP client)
+    |
+    v
+MCP Server (stdio) -- ue_mcp/mcp_server.py
+    |
+    v
+HTTP (localhost:30010)
+    |
+    v
+UE5 Remote Control API
+    |
+    v
+UE5 Editor
 ```
 
-The checksum at the bottom is deterministic -- same answers always produce the same hash. This is how you verify profile integrity.
+### File-Based Bridge
 
----
+For game flow (questions/answers), a file-based protocol uses `~/.translators/`:
+
+- `bridge_state.usda` -- USD VariantSets as state machine
+- `state.json` / `answer.json` -- JSON fallback
+- `cognitive_profile.usda` -- Generated profile
+- `heartbeat.json` -- Liveness (5s interval)
+
+The `UUEBridgeSubsystem` polls at 10Hz with adaptive backoff.
 
 ## Project Structure
 
 ```
-Plugins/UEBridge/
-├── UEBridge.uplugin          # Plugin descriptor
-├── Resources/Icon128.png              # Plugin icon
-├── Content/Widgets/                   # Widget assets
-└── Source/
-    ├── UEBridgeRuntime/      # Ships in packaged builds
-    │   ├── Public/
-    │   │   ├── BridgeTypes.h          # Shared types (questions, profiles, signals)
-    │   │   ├── UEBridgeSubsystem.h  # Main game flow subsystem
-    │   │   └── TranslatorsStyle.h     # Slate style system
-    │   └── Private/
-    │       ├── UEBridgeSubsystem.cpp
-    │       └── TranslatorsStyle.cpp
-    └── UEBridgeEditor/       # Editor-only (file watching, process management)
-        ├── Public/
-        │   └── BridgeEditorSubsystem.h
-        └── Private/
-            └── BridgeEditorSubsystem.cpp
+Plugins/
+├── UEBridge/
+│   └── Source/
+│       ├── UEBridgeRuntime/           # Subsystem, types, UI widgets, style
+│       └── UEBridgeEditor/            # File watching, process management
+└── ViewportPerception/                # AI perception layer
 
-Source/UnrealEngineBridge/                # Game module (thin relay to plugin)
-├── BridgeComponent.h/cpp             # Legacy component (forwards to subsystem)
-└── UI/
-    ├── W_TitleScreen.h/cpp
-    ├── W_ConnectingScreen.h/cpp
-    ├── W_QuestionDisplay.h/cpp
-    ├── W_OptionButton.h/cpp
-    ├── W_ProgressIndicator.h/cpp
-    ├── W_FinaleScreen.h/cpp
-    └── TranslatorsHUD.h/cpp
+Source/UnrealEngineBridge/             # Game module
+├── BridgeComponent.*                  # Legacy BP relay
+└── UI/                                # Slate widgets
+
+ue_mcp/                                # MCP server
+├── mcp_server.py                      # Entry point
+├── remote_control_bridge.py           # UE5 HTTP wrapper
+└── tools/                             # Tool modules (8)
+
+bridge_orchestrator.py                 # Game flow orchestration
+usd_bridge.py                          # USD I/O + profile generation
+tests/                                 # pytest suite
 ```
-
----
-
-## Blueprint API Reference
-
-### Bridge Component
-
-| Function | Description |
-|----------|-------------|
-| `SendAnswer(QuestionId, OptionIndex, ResponseTimeMs)` | Submit the player's answer |
-| `SendAcknowledge()` | Tell the backend you're ready for the next question |
-| `IsBridgeConnected()` | Check if the Python backend is running |
-| `GetCurrentQuestion()` | Get the current question data |
-
-### Bridge Subsystem
-
-| Function | Description |
-|----------|-------------|
-| `StartGame()` | Begin the bridge connection and game session |
-| `StopGame()` | End the session and clean up |
-| `SubmitAnswer(Answer)` | Submit a structured answer |
-| `GetBridgeState()` | Current state (Idle, Connected, QuestionActive, etc.) |
-| `GetBehavioralSignals()` | Response timing, hesitation count, detected state |
-
-### Question Data (`FTranslatorsQuestion`)
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `QuestionId` | String | Unique identifier |
-| `Text` | String | Question text (supports `\n` for line breaks) |
-| `OptionLabels` | String Array | Answer option display text |
-| `OptionDirections` | String Array | Semantic direction per option |
-| `Index` | Int | Current question number (0-based) |
-| `Total` | Int | Total questions in session |
-| `DepthLabel` | String | Tier: SURFACE, PATTERNS, FEELINGS, or CORE |
-
----
-
-## Requirements
-
-- Unreal Engine 5.4+
-- Windows (Win64)
-- Python 3.x (for the backend orchestrator)
 
 ## License
 
-MIT
-
-## Author
-
-[Joseph Ibrahim](https://github.com/JosephOIbrahim)
+Copyright 2026 Joseph Ibrahim. All rights reserved.
