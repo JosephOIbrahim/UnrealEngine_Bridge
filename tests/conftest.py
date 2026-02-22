@@ -36,4 +36,6 @@ def mock_ue():
     ue.save_level = AsyncMock(return_value={"success": True})
     ue.get_level_info = AsyncMock(return_value={"name": "TestLevel", "actor_count": 0})
     ue.set_actor_transform = AsyncMock(return_value={"success": True})
+    ue.get_property = AsyncMock(return_value={"value": 0})
+    ue.set_property = AsyncMock(return_value={"success": True})
     return ue
