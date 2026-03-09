@@ -32,7 +32,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLegacyBridgeReady, int32, TotalQu
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent, DisplayName="UE Bridge", ToolTip="Relay component — delegates to UUEBridgeSubsystem for game flow"))
-class TRANSLATORSCARD_API UBridgeComponent : public UActorComponent
+class UNREALENGINEBRIDGE_API UBridgeComponent : public UActorComponent
 {
     GENERATED_BODY()
 

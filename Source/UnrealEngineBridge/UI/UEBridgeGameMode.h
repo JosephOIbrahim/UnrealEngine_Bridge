@@ -17,7 +17,7 @@
  * - Auto-spawns BridgeActor with BridgeComponent (no manual placement needed)
  */
 UCLASS()
-class TRANSLATORSCARD_API AUEBridgeGameMode : public AGameModeBase
+class UNREALENGINEBRIDGE_API AUEBridgeGameMode : public AGameModeBase
 {
     GENERATED_BODY()
 

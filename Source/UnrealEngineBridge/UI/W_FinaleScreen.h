@@ -27,7 +27,7 @@ class UScrollBox;
  * Programmatic UI - no Blueprint required
  */
 UCLASS(Blueprintable, BlueprintType)
-class TRANSLATORSCARD_API UW_FinaleScreen : public UUserWidget
+class UNREALENGINEBRIDGE_API UW_FinaleScreen : public UUserWidget
 {
     GENERATED_BODY()
 

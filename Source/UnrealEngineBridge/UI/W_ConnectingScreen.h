@@ -18,7 +18,7 @@ class UBorder;
  * Programmatic UI - no Blueprint required
  */
 UCLASS(Blueprintable, BlueprintType)
-class TRANSLATORSCARD_API UW_ConnectingScreen : public UUserWidget
+class UNREALENGINEBRIDGE_API UW_ConnectingScreen : public UUserWidget
 {
     GENERATED_BODY()
 

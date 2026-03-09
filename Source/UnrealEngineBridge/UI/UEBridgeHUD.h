@@ -30,7 +30,7 @@ class UUserWidget;
  * 6. Parse and display cognitive profile on finale
  */
 UCLASS()
-class TRANSLATORSCARD_API AUEBridgeHUD : public AHUD
+class UNREALENGINEBRIDGE_API AUEBridgeHUD : public AHUD
 {
     GENERATED_BODY()
 

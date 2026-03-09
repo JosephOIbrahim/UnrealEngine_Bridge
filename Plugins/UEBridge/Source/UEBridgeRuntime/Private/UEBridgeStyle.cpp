@@ -34,7 +34,11 @@ void FUEBridgeStyle::Shutdown()
 
 const ISlateStyle& FUEBridgeStyle::Get()
 {
-	check(StyleInstance.IsValid());
+	if (!StyleInstance.IsValid())
+	{
+		// Lazy init: CDO construction can reach here before StartupModule()
+		Initialize();
+	}
 	return *StyleInstance;
 }
 

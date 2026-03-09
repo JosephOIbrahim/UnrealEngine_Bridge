@@ -29,7 +29,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAnswerSelected, int32, OptionInde
  * Deterministic: fixed widget structure, same input produces same visual output.
  */
 UCLASS(Blueprintable, BlueprintType)
-class TRANSLATORSCARD_API UW_QuestionDisplay : public UUserWidget
+class UNREALENGINEBRIDGE_API UW_QuestionDisplay : public UUserWidget
 {
     GENERATED_BODY()
 

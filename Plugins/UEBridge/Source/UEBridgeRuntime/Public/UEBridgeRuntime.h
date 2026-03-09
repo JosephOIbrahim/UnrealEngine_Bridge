@@ -6,7 +6,7 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogUEBridge, Log, All);
+UEBRIDGERUNTIME_API DECLARE_LOG_CATEGORY_EXTERN(LogUEBridge, Log, All);
 
 class FUEBridgeRuntimeModule : public IModuleInterface
 {

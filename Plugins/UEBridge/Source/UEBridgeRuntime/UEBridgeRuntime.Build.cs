@@ -10,7 +10,6 @@ public class UEBridgeRuntime : ModuleRules
     public UEBridgeRuntime(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-        IWYUSupport = IWYUSupportMode.Full;
 
         PublicIncludePaths.AddRange(new string[]
         {

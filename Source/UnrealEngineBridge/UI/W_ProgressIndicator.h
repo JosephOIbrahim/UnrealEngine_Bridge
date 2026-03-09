@@ -21,7 +21,7 @@
  * Deterministic: fixed 8 indicator slots, predictable visual state.
  */
 UCLASS(Blueprintable, BlueprintType)
-class TRANSLATORSCARD_API UW_ProgressIndicator : public UUserWidget
+class UNREALENGINEBRIDGE_API UW_ProgressIndicator : public UUserWidget
 {
     GENERATED_BODY()
 

@@ -25,7 +25,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOptionClicked, int32, OptionIndex
  * Deterministic: fixed visual states and click-to-delegate flow.
  */
 UCLASS(Blueprintable, BlueprintType)
-class TRANSLATORSCARD_API UW_OptionButton : public UUserWidget
+class UNREALENGINEBRIDGE_API UW_OptionButton : public UUserWidget
 {
     GENERATED_BODY()
 

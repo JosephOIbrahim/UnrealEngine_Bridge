@@ -201,10 +201,9 @@ bool UBridgeEditorSubsystem::IsBridgeProcessRunning() const
     }
 
     // Live check — if the process exited on its own, update our flag
-    if (BridgeProcessHandle.IsValid() && !FPlatformProcess::IsProcRunning(BridgeProcessHandle))
+    UBridgeEditorSubsystem* MutableThis = const_cast<UBridgeEditorSubsystem*>(this);
+    if (BridgeProcessHandle.IsValid() && !FPlatformProcess::IsProcRunning(MutableThis->BridgeProcessHandle))
     {
-        // Process died externally; clean up state (mutable cast for bookkeeping)
-        UBridgeEditorSubsystem* MutableThis = const_cast<UBridgeEditorSubsystem*>(this);
         FPlatformProcess::CloseProc(MutableThis->BridgeProcessHandle);
         MutableThis->BridgeProcId = 0;
         MutableThis->bBridgeProcessRunning = false;

@@ -48,9 +48,6 @@ public class UnrealEngineBridge : ModuleRules
             "EnhancedInput"
         });
 
-        // Enable IWYU (Include What You Use)
-        IWYUSupport = IWYUSupport.Full;
-
         // Bridge version (matches plugin — defined in UEBridgeRuntime.Build.cs)
         // Kept here for legacy references; canonical version is BRIDGE_VERSION from the plugin.
 

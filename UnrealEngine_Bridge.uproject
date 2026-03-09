@@ -16,7 +16,10 @@
 	"Plugins": [
 		{
 			"Name": "UEBridge",
-			"Enabled": true
+			"Enabled": true,
+			"SupportedTargetPlatforms": [
+				"Win64"
+			]
 		},
 		{
 			"Name": "USDImporter",
@@ -124,6 +127,18 @@
 			"Name": "PythonAutomationTest",
 			"Enabled": true,
 			"Optional": true
+		},
+		{
+			"Name": "AIAssistant",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayBehaviors",
+			"Enabled": true
+		},
+		{
+			"Name": "MLAdapter",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

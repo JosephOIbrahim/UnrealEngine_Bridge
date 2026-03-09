@@ -14,7 +14,7 @@
 #include "UEBridgeSubsystem.generated.h"
 
 UCLASS()
-class TRANSLATORSBRIDGERUNTIME_API UUEBridgeSubsystem
+class UEBRIDGERUNTIME_API UUEBridgeSubsystem
     : public UGameInstanceSubsystem
     , public FTickableGameObject
 {

@@ -11,7 +11,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Subsystems/EditorSubsystem.h"
+#include "EditorSubsystem.h"
 #include "BridgeEditorSubsystem.generated.h"
 
 struct FFileChangeData;
@@ -21,7 +21,7 @@ class UBridgeComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBridgeFileChanged, const FString&, Filename, bool, bIsUsdProfile);
 
 UCLASS()
-class TRANSLATORSBRIDGEEDITOR_API UBridgeEditorSubsystem : public UEditorSubsystem
+class UEBRIDGEEDITOR_API UBridgeEditorSubsystem : public UEditorSubsystem
 {
     GENERATED_BODY()
 

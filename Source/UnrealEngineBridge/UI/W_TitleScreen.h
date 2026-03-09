@@ -28,7 +28,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStartRequested);
  * Programmatic UI - no Blueprint required
  */
 UCLASS(Blueprintable, BlueprintType)
-class TRANSLATORSCARD_API UW_TitleScreen : public UUserWidget
+class UNREALENGINEBRIDGE_API UW_TitleScreen : public UUserWidget
 {
     GENERATED_BODY()
 

@@ -11,7 +11,6 @@ public class UEBridgeEditor : ModuleRules
     public UEBridgeEditor(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-        IWYUSupport = IWYUSupportMode.Full;
 
         PublicIncludePaths.AddRange(new string[]
         {

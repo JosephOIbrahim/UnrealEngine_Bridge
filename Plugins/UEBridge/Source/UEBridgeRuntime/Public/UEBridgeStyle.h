@@ -15,7 +15,7 @@
  *   const FLinearColor& Bg = FUEBridgeStyle::GetColor("Color.Background");
  *   const FSlateFontInfo& Font = FUEBridgeStyle::GetFont("Font.Title");
  */
-class TRANSLATORSBRIDGERUNTIME_API FUEBridgeStyle
+class UEBRIDGERUNTIME_API FUEBridgeStyle
 {
 public:
 	/** Register the style set. Call from module StartupModule(). */

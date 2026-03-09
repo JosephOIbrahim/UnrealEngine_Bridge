@@ -71,7 +71,7 @@ enum class EDepthTier : uint8
 
 /** Structured question data from the Python orchestrator */
 USTRUCT(BlueprintType, meta = (ToolTip = "Structured question data from the Python orchestrator"))
-struct TRANSLATORSBRIDGERUNTIME_API FUEBridgeQuestion
+struct UEBRIDGERUNTIME_API FUEBridgeQuestion
 {
     GENERATED_BODY()
 
@@ -122,7 +122,7 @@ struct TRANSLATORSBRIDGERUNTIME_API FUEBridgeQuestion
 
 /** A submitted player answer */
 USTRUCT(BlueprintType, meta = (ToolTip = "A submitted player answer"))
-struct TRANSLATORSBRIDGERUNTIME_API FTranslatorsAnswer
+struct UEBRIDGERUNTIME_API FTranslatorsAnswer
 {
     GENERATED_BODY()
 
@@ -153,7 +153,7 @@ struct TRANSLATORSBRIDGERUNTIME_API FTranslatorsAnswer
 
 /** A single cognitive profile trait */
 USTRUCT(BlueprintType, meta = (ToolTip = "A single cognitive profile trait"))
-struct TRANSLATORSBRIDGERUNTIME_API FTranslatorsTrait
+struct UEBRIDGERUNTIME_API FTranslatorsTrait
 {
     GENERATED_BODY()
 
@@ -177,7 +177,7 @@ struct TRANSLATORSBRIDGERUNTIME_API FTranslatorsTrait
 
 /** Complete cognitive profile result */
 USTRUCT(BlueprintType, meta = (ToolTip = "Complete cognitive profile result"))
-struct TRANSLATORSBRIDGERUNTIME_API FUEBridgeProfile
+struct UEBRIDGERUNTIME_API FUEBridgeProfile
 {
     GENERATED_BODY()
 
@@ -214,14 +214,13 @@ struct TRANSLATORSBRIDGERUNTIME_API FUEBridgeProfile
     FString GeneratorVersion;
 
     /** Returns true if profile has been populated */
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Translators", meta = (ToolTip = "True if profile has valid trait data"))
     bool IsValid() const { return Traits.Num() > 0 && !Checksum.IsEmpty(); }
 };
 
 
 /** Accumulated behavioral signals for ADHD_MoE expert routing */
 USTRUCT(BlueprintType, meta = (ToolTip = "Accumulated behavioral signals for MoE expert routing"))
-struct TRANSLATORSBRIDGERUNTIME_API FBehavioralSignals
+struct UEBRIDGERUNTIME_API FBehavioralSignals
 {
     GENERATED_BODY()
 
