@@ -65,3 +65,51 @@ class TestCircuitBreakerStates:
         error = cb.fail_fast_error()
         assert "error" in error
         assert "circuit breaker" in error["error"].lower()
+
+
+class TestHalfOpenConcurrencyLimit:
+    """Test that HALF_OPEN state only allows one probe request."""
+
+    def test_half_open_allows_first_request(self):
+        cb = CircuitBreaker(failure_threshold=2, recovery_timeout=0.1)
+        # Trip the breaker
+        cb.record_failure()
+        cb.record_failure()
+        assert cb.state == CircuitBreaker.OPEN
+        # Wait for recovery
+        time.sleep(0.15)
+        assert cb.state == CircuitBreaker.HALF_OPEN
+        # First request should be allowed
+        assert cb.allow_request() is True
+
+    def test_half_open_blocks_second_concurrent_request(self):
+        cb = CircuitBreaker(failure_threshold=2, recovery_timeout=0.1)
+        cb.record_failure()
+        cb.record_failure()
+        time.sleep(0.15)
+        assert cb.state == CircuitBreaker.HALF_OPEN
+        # First probe allowed
+        assert cb.allow_request() is True
+        # Second should be blocked (probe already in flight)
+        assert cb.allow_request() is False
+
+    def test_half_open_resets_after_success(self):
+        cb = CircuitBreaker(failure_threshold=2, recovery_timeout=0.1)
+        cb.record_failure()
+        cb.record_failure()
+        time.sleep(0.15)
+        cb.allow_request()  # first probe
+        cb.record_success()  # probe succeeded
+        # Should be CLOSED now, requests allowed
+        assert cb.state == CircuitBreaker.CLOSED
+        assert cb.allow_request() is True
+
+    def test_half_open_resets_after_failure(self):
+        cb = CircuitBreaker(failure_threshold=2, recovery_timeout=0.1)
+        cb.record_failure()
+        cb.record_failure()
+        time.sleep(0.15)
+        cb.allow_request()  # first probe
+        cb.record_failure()  # probe failed
+        # Should be OPEN again
+        assert cb.state == CircuitBreaker.OPEN

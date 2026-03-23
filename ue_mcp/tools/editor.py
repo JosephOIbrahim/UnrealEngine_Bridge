@@ -8,6 +8,8 @@ from __future__ import annotations
 import json
 import logging
 
+from ._codegen import find_actor_by_label_snippet
+from ._types import MCPServer, UEBridge
 from ._validation import (
     sanitize_label, sanitize_object_path, sanitize_console_command,
     escape_for_fstring, make_error,
@@ -16,7 +18,7 @@ from ._validation import (
 logger = logging.getLogger("ue5-mcp.tools.editor")
 
 
-def register(server, ue):
+def register(server: MCPServer, ue: UEBridge) -> None:
     @server.tool(
         name="ue_console_command",
         description=(
@@ -46,6 +48,14 @@ except Exception as e:
     print("RESULT:" + json.dumps({{"error": str(e)}}))
 """
         result = await ue.execute_python(code)
+
+        # Try to parse structured output from known commands
+        from ._console_parsers import try_parse_output
+        if isinstance(result, dict) and result.get("output"):
+            parsed = try_parse_output(command, result["output"])
+            if parsed:
+                result["structured"] = parsed
+
         return json.dumps(result, indent=2)
 
     @server.tool(
@@ -62,17 +72,22 @@ except Exception as e:
         code = """
 import unreal, json
 
-try:
-    result = unreal.EditorLevelLibrary.editor_undo() if hasattr(unreal.EditorLevelLibrary, 'editor_undo') else unreal.SystemLibrary.transaction_undo()
+success = False
+error_msg = "No undo method available"
+for method_name in ["editor_undo", "transaction_undo"]:
+    fn = getattr(unreal.EditorLevelLibrary, method_name, None)
+    if fn is not None:
+        try:
+            fn()
+            success = True
+            break
+        except Exception as e:
+            error_msg = str(e)
+
+if success:
     print("RESULT:" + json.dumps({"undone": True}))
-except Exception as e:
-    # Fall back to GEditor undo via Python
-    try:
-        import unreal
-        unreal.EditorLevelLibrary.editor_undo()
-        print("RESULT:" + json.dumps({"undone": True}))
-    except Exception as e2:
-        print("RESULT:" + json.dumps({"error": str(e2)}))
+else:
+    print("RESULT:" + json.dumps({"error": error_msg}))
 """
         result = await ue.execute_python(code)
         return json.dumps(result, indent=2)
@@ -91,15 +106,22 @@ except Exception as e:
         code = """
 import unreal, json
 
-try:
-    result = unreal.EditorLevelLibrary.editor_redo() if hasattr(unreal.EditorLevelLibrary, 'editor_redo') else unreal.SystemLibrary.transaction_redo()
+success = False
+error_msg = "No redo method available"
+for method_name in ["editor_redo", "transaction_redo"]:
+    fn = getattr(unreal.EditorLevelLibrary, method_name, None)
+    if fn is not None:
+        try:
+            fn()
+            success = True
+            break
+        except Exception as e:
+            error_msg = str(e)
+
+if success:
     print("RESULT:" + json.dumps({"redone": True}))
-except Exception as e:
-    try:
-        unreal.EditorLevelLibrary.editor_redo()
-        print("RESULT:" + json.dumps({"redone": True}))
-    except Exception as e2:
-        print("RESULT:" + json.dumps({"error": str(e2)}))
+else:
+    print("RESULT:" + json.dumps({"error": error_msg}))
 """
         result = await ue.execute_python(code)
         return json.dumps(result, indent=2)
@@ -119,17 +141,11 @@ except Exception as e:
             return make_error(err)
 
         safe_label = escape_for_fstring(actor_label)
+        find_block = find_actor_by_label_snippet(f'"{safe_label}"')
         code = f"""
 import unreal, json
 
-subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-actors = subsystem.get_all_level_actors()
-actor = None
-for a in actors:
-    if a.get_actor_label() == "{safe_label}":
-        actor = a
-        break
-
+{find_block}
 if actor is None:
     print("RESULT:" + json.dumps({{"error": "Actor not found: {safe_label}"}}))
 else:

@@ -11,10 +11,11 @@ import logging
 
 logger = logging.getLogger("ue5-mcp.tools.mograph")
 
+from ._types import MCPServer, UEBridge
 from ._validation import sanitize_label, sanitize_content_path, escape_for_fstring, make_error
 
 
-def register(server, ue):
+def register(server: MCPServer, ue: UEBridge) -> None:
     @server.tool(
         name="ue_create_cloner",
         description=(

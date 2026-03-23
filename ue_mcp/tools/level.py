@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 import logging
 
+from ._types import MCPServer, UEBridge
 from ._validation import sanitize_content_path, escape_for_fstring, make_error
 
 logger = logging.getLogger("ue5-mcp.tools.level")
 
 
-def register(server, ue):
+def register(server: MCPServer, ue: UEBridge) -> None:
     @server.tool(
         name="ue_save_level",
         description="Save the current level in the UE5 editor.",

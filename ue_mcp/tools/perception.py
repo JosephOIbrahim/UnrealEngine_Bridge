@@ -18,6 +18,9 @@ from pathlib import Path
 
 import httpx
 
+from ._types import MCPServer, UEBridge
+from ._validation import make_error
+
 logger = logging.getLogger("ue5-mcp.tools.perception")
 
 PERCEPTION_URL = os.environ.get("UE_PERCEPTION_URL", "http://localhost:30011")
@@ -181,7 +184,79 @@ print("RESULT:" + json.dumps(result))
     return await ue.execute_python(code)
 
 
-def register(server, ue):
+def _compute_scene_diff(snap1: dict, snap2: dict) -> dict:
+    """Compute structural diff between two scene snapshots."""
+    diff: dict = {"changed": False, "changes": []}
+
+    r1 = snap1.get("result") or snap1
+    r2 = snap2.get("result") or snap2
+
+    if "error" in r1 or "error" in r2:
+        return {"error": "Failed to capture one or both snapshots",
+                "snap1_error": r1.get("error"), "snap2_error": r2.get("error")}
+
+    # Actor diff
+    actors1 = {a["label"]: a for a in r1.get("actors", [])}
+    actors2 = {a["label"]: a for a in r2.get("actors", [])}
+
+    added = set(actors2.keys()) - set(actors1.keys())
+    removed = set(actors1.keys()) - set(actors2.keys())
+
+    for label in added:
+        diff["changes"].append({"type": "actor_added", "label": label, "class": actors2[label].get("class")})
+    for label in removed:
+        diff["changes"].append({"type": "actor_removed", "label": label, "class": actors1[label].get("class")})
+
+    # Moved actors
+    common = set(actors1.keys()) & set(actors2.keys())
+    for label in common:
+        loc1 = actors1[label].get("location", [0, 0, 0])
+        loc2 = actors2[label].get("location", [0, 0, 0])
+        dist = sum((a - b) ** 2 for a, b in zip(loc1, loc2)) ** 0.5
+        if dist > 1.0:  # threshold: 1 unreal unit
+            diff["changes"].append({
+                "type": "actor_moved", "label": label,
+                "from": loc1, "to": loc2, "distance": round(dist, 2),
+            })
+
+    # Camera diff
+    cam1 = r1.get("camera", {})
+    cam2 = r2.get("camera", {})
+    if cam1.get("available") and cam2.get("available"):
+        cam_loc1 = cam1.get("location", [0, 0, 0])
+        cam_loc2 = cam2.get("location", [0, 0, 0])
+        cam_dist = sum((a - b) ** 2 for a, b in zip(cam_loc1, cam_loc2)) ** 0.5
+        if cam_dist > 1.0:
+            diff["changes"].append({
+                "type": "camera_moved",
+                "from": cam_loc1, "to": cam_loc2, "distance": round(cam_dist, 2),
+            })
+
+    # Selection diff
+    sel1 = set(r1.get("selected", []))
+    sel2 = set(r2.get("selected", []))
+    if sel1 != sel2:
+        diff["changes"].append({
+            "type": "selection_changed",
+            "previously_selected": sorted(sel1),
+            "now_selected": sorted(sel2),
+        })
+
+    # Actor count
+    count1 = r1.get("actor_count", 0)
+    count2 = r2.get("actor_count", 0)
+    if count1 != count2:
+        diff["changes"].append({
+            "type": "actor_count_changed",
+            "before": count1, "after": count2,
+        })
+
+    diff["changed"] = len(diff["changes"]) > 0
+    diff["snapshot_count"] = 2
+    return diff
+
+
+def register(server: MCPServer, ue: UEBridge) -> None:
 
     @server.tool(
         name="ue_viewport_percept",
@@ -321,3 +396,76 @@ def register(server, ue):
                 "hint": "Configuration requires the C++ plugin to be running.",
             }, indent=2)
         return json.dumps(result, indent=2)
+
+    @server.tool(
+        name="ue_viewport_diff",
+        description="Capture two viewport snapshots with a delay and return a structural diff showing what changed (actors, camera, selection). Useful for verifying that scene modifications took effect.",
+        annotations={
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+        },
+    )
+    async def viewport_diff(
+        delay_ms: int = 1000,
+    ) -> str:
+        """Capture two snapshots and compute structural diff."""
+        import asyncio
+
+        if delay_ms < 100 or delay_ms > 30000:
+            return json.dumps({"error": "delay_ms must be between 100 and 30000"})
+
+        # Capture scene state at two points in time
+        scene_code = '''
+import unreal, json
+
+subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+actors = subsystem.get_all_level_actors()
+
+actor_list = []
+for a in actors:
+    try:
+        loc = a.get_actor_location()
+        actor_list.append({
+            "label": a.get_actor_label(),
+            "class": a.get_class().get_name(),
+            "location": [loc.x, loc.y, loc.z],
+        })
+    except Exception:
+        pass
+
+# Camera info
+try:
+    viewport = unreal.UnrealEditorSubsystem.get_level_viewport_camera_info() if hasattr(unreal, 'UnrealEditorSubsystem') else None
+    camera = {"available": False}
+    if viewport:
+        loc, rot = viewport
+        camera = {"location": [loc.x, loc.y, loc.z], "rotation": [rot.pitch, rot.yaw, rot.roll], "available": True}
+except Exception:
+    camera = {"available": False}
+
+# Selection
+try:
+    selected = [a.get_actor_label() for a in subsystem.get_selected_level_actors()]
+except Exception:
+    selected = []
+
+print("RESULT:" + json.dumps({
+    "actors": actor_list,
+    "camera": camera,
+    "selected": selected,
+    "actor_count": len(actor_list),
+}))
+'''
+        # First capture
+        snap1 = await ue.execute_python(scene_code)
+
+        # Wait
+        await asyncio.sleep(delay_ms / 1000.0)
+
+        # Second capture
+        snap2 = await ue.execute_python(scene_code)
+
+        # Compute diff
+        diff = _compute_scene_diff(snap1, snap2)
+        return json.dumps(diff, indent=2)

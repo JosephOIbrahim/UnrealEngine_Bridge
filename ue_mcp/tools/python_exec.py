@@ -12,12 +12,13 @@ from __future__ import annotations
 import json
 import logging
 
+from ._types import MCPServer, UEBridge
 from ._validation import validate_python_code, make_error
 
 logger = logging.getLogger("ue5-mcp.tools.python_exec")
 
 
-def register(server, ue):
+def register(server: MCPServer, ue: UEBridge) -> None:
     @server.tool(
         name="ue_execute_python",
         description=(

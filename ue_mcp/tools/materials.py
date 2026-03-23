@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 
+from ._types import MCPServer, UEBridge
 from ._validation import (
     sanitize_label, sanitize_content_path, sanitize_property_name,
     sanitize_material_value, escape_for_fstring, make_error,
@@ -18,7 +19,7 @@ from ._validation import (
 logger = logging.getLogger("ue5-mcp.tools.materials")
 
 
-def register(server, ue):
+def register(server: MCPServer, ue: UEBridge) -> None:
     @server.tool(
         name="ue_create_material_instance",
         description=(

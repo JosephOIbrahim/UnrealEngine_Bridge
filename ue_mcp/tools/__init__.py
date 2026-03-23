@@ -1,5 +1,6 @@
 """Tool registry for UE5 MCP server."""
 
+from ._types import MCPServer, UEBridge
 from .actors import register as register_actors
 from .properties import register as register_properties
 from .python_exec import register as register_python_exec
@@ -11,9 +12,10 @@ from .perception import register as register_perception
 from .scene import register as register_scene
 from .materials import register as register_materials
 from .editor import register as register_editor
+from .sequencer import register as register_sequencer
 
 
-def register_all_tools(server, ue):
+def register_all_tools(server: MCPServer, ue: UEBridge) -> None:
     """Register all tool modules with the MCP server."""
     register_actors(server, ue)
     register_properties(server, ue)
@@ -26,3 +28,4 @@ def register_all_tools(server, ue):
     register_scene(server, ue)
     register_materials(server, ue)
     register_editor(server, ue)
+    register_sequencer(server, ue)

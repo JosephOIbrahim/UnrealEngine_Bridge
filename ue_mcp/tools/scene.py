@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 
+from ._types import MCPServer, UEBridge
 from ._validation import (
     sanitize_label, sanitize_class_name, sanitize_object_path,
     escape_for_fstring, make_error,
@@ -18,7 +19,7 @@ from ._validation import (
 logger = logging.getLogger("ue5-mcp.tools.scene")
 
 
-def register(server, ue):
+def register(server: MCPServer, ue: UEBridge) -> None:
     @server.tool(
         name="ue_get_actor_details",
         description=(

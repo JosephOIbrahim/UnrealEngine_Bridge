@@ -51,6 +51,7 @@ class TestAtomicIO:
 
 class TestWriteQuestion:
     def test_creates_file(self, tmp_bridge_dir, monkeypatch):
+        monkeypatch.setattr("usd_bridge.io.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         monkeypatch.setattr("usd_bridge.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         path = write_question_usda(
             question_id="test_q1",
@@ -72,6 +73,7 @@ class TestWriteQuestion:
         assert "Option A" in content
 
     def test_incremental_update(self, tmp_bridge_dir, monkeypatch):
+        monkeypatch.setattr("usd_bridge.io.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         monkeypatch.setattr("usd_bridge.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         # First write
         write_question_usda(
@@ -94,6 +96,7 @@ class TestWriteQuestion:
 
 class TestReadAnswer:
     def test_no_answer_when_pending(self, tmp_bridge_dir, monkeypatch):
+        monkeypatch.setattr("usd_bridge.io.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         monkeypatch.setattr("usd_bridge.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         write_question_usda(
             question_id="q1", text="Test?",
@@ -104,6 +107,7 @@ class TestReadAnswer:
         assert result is None  # No answer yet
 
     def test_reads_answer_after_set(self, tmp_bridge_dir, monkeypatch):
+        monkeypatch.setattr("usd_bridge.io.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         monkeypatch.setattr("usd_bridge.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         write_question_usda(
             question_id="q1", text="Test?",
@@ -130,6 +134,7 @@ class TestReadAnswer:
 
 class TestSetVariant:
     def test_set_sync_status(self, tmp_bridge_dir, monkeypatch):
+        monkeypatch.setattr("usd_bridge.io.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         monkeypatch.setattr("usd_bridge.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         write_question_usda(
             question_id="q1", text="Test?",
@@ -141,6 +146,7 @@ class TestSetVariant:
         assert 'string sync_status = "idle"' in content
 
     def test_set_nonexistent_file(self, tmp_bridge_dir, monkeypatch):
+        monkeypatch.setattr("usd_bridge.io.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         monkeypatch.setattr("usd_bridge.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         assert not set_variant("sync_status", "idle", bridge_path=tmp_bridge_dir)
 
@@ -149,6 +155,7 @@ class TestSetVariant:
 
 class TestWriteReady:
     def test_creates_ready_state(self, tmp_bridge_dir, monkeypatch):
+        monkeypatch.setattr("usd_bridge.io.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         monkeypatch.setattr("usd_bridge.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         path = write_ready_usda(total_questions=8, bridge_path=tmp_bridge_dir)
         assert path.exists()
@@ -161,6 +168,7 @@ class TestWriteReady:
 
 class TestValidateBridgeState:
     def test_valid_file(self, tmp_bridge_dir, monkeypatch):
+        monkeypatch.setattr("usd_bridge.io.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         monkeypatch.setattr("usd_bridge.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         write_ready_usda(bridge_path=tmp_bridge_dir)
         result = validate_bridge_state(bridge_path=tmp_bridge_dir)
@@ -169,6 +177,7 @@ class TestValidateBridgeState:
         assert len(result["errors"]) == 0
 
     def test_missing_file(self, tmp_bridge_dir, monkeypatch):
+        monkeypatch.setattr("usd_bridge.io.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         monkeypatch.setattr("usd_bridge.DEFAULT_BRIDGE_PATH", tmp_bridge_dir)
         result = validate_bridge_state(bridge_path=tmp_bridge_dir)
         assert not result["valid"]

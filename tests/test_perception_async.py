@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from mcp.server.fastmcp import FastMCP
 
-from ue_mcp.tools.perception import register
+from ue_mcp.tools.perception import register, _compute_scene_diff
 
 
 @pytest.fixture
@@ -120,3 +120,131 @@ class TestViewportConfigAsync:
         result = await fn(max_fps=10.0)
         data = json.loads(result)
         assert "error" in data
+
+
+class TestViewportDiffAsync:
+    @pytest.mark.asyncio
+    async def test_delay_too_small(self, server, mock_ue):
+        fn = _call(server, "ue_viewport_diff")
+        result = await fn(delay_ms=50)
+        data = json.loads(result)
+        assert "error" in data
+
+    @pytest.mark.asyncio
+    async def test_delay_too_large(self, server, mock_ue):
+        fn = _call(server, "ue_viewport_diff")
+        result = await fn(delay_ms=60000)
+        data = json.loads(result)
+        assert "error" in data
+
+    @pytest.mark.asyncio
+    async def test_no_changes(self, server, mock_ue):
+        snapshot = {
+            "actors": [{"label": "Cube", "class": "StaticMeshActor", "location": [0, 0, 0]}],
+            "camera": {"available": False},
+            "selected": [],
+            "actor_count": 1,
+        }
+        mock_ue.execute_python = AsyncMock(return_value=snapshot)
+        fn = _call(server, "ue_viewport_diff")
+        result = await fn(delay_ms=100)
+        data = json.loads(result)
+        assert data["changed"] is False
+        assert data["changes"] == []
+
+    @pytest.mark.asyncio
+    async def test_actor_added(self, server, mock_ue):
+        snap1 = {
+            "actors": [{"label": "Cube", "class": "StaticMeshActor", "location": [0, 0, 0]}],
+            "camera": {"available": False},
+            "selected": [],
+            "actor_count": 1,
+        }
+        snap2 = {
+            "actors": [
+                {"label": "Cube", "class": "StaticMeshActor", "location": [0, 0, 0]},
+                {"label": "Sphere", "class": "StaticMeshActor", "location": [100, 0, 0]},
+            ],
+            "camera": {"available": False},
+            "selected": [],
+            "actor_count": 2,
+        }
+        mock_ue.execute_python = AsyncMock(side_effect=[snap1, snap2])
+        fn = _call(server, "ue_viewport_diff")
+        result = await fn(delay_ms=100)
+        data = json.loads(result)
+        assert data["changed"] is True
+        types = [c["type"] for c in data["changes"]]
+        assert "actor_added" in types
+        assert "actor_count_changed" in types
+
+    @pytest.mark.asyncio
+    async def test_actor_moved(self, server, mock_ue):
+        snap1 = {
+            "actors": [{"label": "Cube", "class": "StaticMeshActor", "location": [0, 0, 0]}],
+            "camera": {"available": False},
+            "selected": [],
+            "actor_count": 1,
+        }
+        snap2 = {
+            "actors": [{"label": "Cube", "class": "StaticMeshActor", "location": [100, 0, 0]}],
+            "camera": {"available": False},
+            "selected": [],
+            "actor_count": 1,
+        }
+        mock_ue.execute_python = AsyncMock(side_effect=[snap1, snap2])
+        fn = _call(server, "ue_viewport_diff")
+        result = await fn(delay_ms=100)
+        data = json.loads(result)
+        assert data["changed"] is True
+        moved = [c for c in data["changes"] if c["type"] == "actor_moved"]
+        assert len(moved) == 1
+        assert moved[0]["distance"] == 100.0
+
+
+class TestComputeSceneDiff:
+    def test_error_in_snapshot(self):
+        result = _compute_scene_diff({"error": "fail"}, {"actors": []})
+        assert "error" in result
+
+    def test_selection_changed(self):
+        snap1 = {"actors": [], "camera": {}, "selected": ["Cube"], "actor_count": 0}
+        snap2 = {"actors": [], "camera": {}, "selected": ["Sphere"], "actor_count": 0}
+        result = _compute_scene_diff(snap1, snap2)
+        assert result["changed"] is True
+        sel = [c for c in result["changes"] if c["type"] == "selection_changed"]
+        assert len(sel) == 1
+        assert sel[0]["now_selected"] == ["Sphere"]
+
+    def test_actor_removed(self):
+        snap1 = {
+            "actors": [{"label": "Cube", "class": "StaticMeshActor", "location": [0, 0, 0]}],
+            "camera": {},
+            "selected": [],
+            "actor_count": 1,
+        }
+        snap2 = {"actors": [], "camera": {}, "selected": [], "actor_count": 0}
+        result = _compute_scene_diff(snap1, snap2)
+        assert result["changed"] is True
+        removed = [c for c in result["changes"] if c["type"] == "actor_removed"]
+        assert len(removed) == 1
+        assert removed[0]["label"] == "Cube"
+
+    def test_camera_moved(self):
+        snap1 = {
+            "actors": [],
+            "camera": {"available": True, "location": [0, 0, 0]},
+            "selected": [],
+            "actor_count": 0,
+        }
+        snap2 = {
+            "actors": [],
+            "camera": {"available": True, "location": [200, 0, 0]},
+            "selected": [],
+            "actor_count": 0,
+        }
+        result = _compute_scene_diff(snap1, snap2)
+        assert result["changed"] is True
+        cam = [c for c in result["changes"] if c["type"] == "camera_moved"]
+        assert len(cam) == 1
+        assert cam[0]["distance"] == 200.0

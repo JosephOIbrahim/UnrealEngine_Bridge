@@ -20,11 +20,15 @@ from typing import Optional
 
 # Modules that must never be imported in editor Python
 BLOCKED_MODULES = frozenset({
-    "subprocess", "shutil", "socket", "http.server", "xmlrpc",
+    "os", "sys", "subprocess", "shutil", "socket", "http.server", "xmlrpc",
     "ctypes", "multiprocessing", "signal", "pty", "pipes",
     "webbrowser", "antigravity", "turtle", "tkinter",
     "smtplib", "ftplib", "telnetlib", "poplib", "imaplib",
-    "nntplib", "xmlrpc.server",
+    "nntplib", "xmlrpc.server", "importlib",
+    "pickle", "marshal", "shelve", "dbm",
+    "urllib", "requests", "http.client", "xmlrpc.client",
+    "code", "codeop", "compileall", "py_compile",
+    "runpy", "ensurepip", "venv", "zipimport",
 })
 
 # Attribute accesses that are dangerous even on allowed modules
@@ -46,11 +50,31 @@ BLOCKED_ATTRS = frozenset({
     "chown",
     "chmod",
     "kill",         # os.kill
+    "__subclasses__",
+    "__bases__",
+    "__mro__",
+    "__globals__",
+    "__builtins__",
+    "__code__",
+    "__reduce__",
 })
 
 # Functions that must never appear as Call targets
 BLOCKED_BUILTINS = frozenset({
-    "exec", "eval", "compile", "__import__", "breakpoint",
+    "exec", "eval", "compile", "__import__", "breakpoint", "getattr",
+    "open", "globals", "locals", "vars", "dir",
+    "delattr", "setattr",
+})
+
+# Dunder attributes that are safe for normal Python usage
+SAFE_DUNDERS = frozenset({
+    "__init__", "__str__", "__repr__", "__len__", "__iter__",
+    "__next__", "__enter__", "__exit__", "__name__", "__class__",
+    "__dict__", "__doc__", "__module__", "__qualname__",
+    "__hash__", "__eq__", "__ne__", "__lt__", "__gt__",
+    "__le__", "__ge__", "__bool__", "__int__", "__float__",
+    "__contains__", "__getitem__", "__setitem__", "__delitem__",
+    "__call__", "__add__", "__sub__", "__mul__", "__truediv__",
 })
 
 
@@ -86,10 +110,13 @@ def validate_python_code(code: str) -> Optional[str]:
 
         # Block dangerous attribute access (e.g., os.system, shutil.rmtree)
         elif isinstance(node, ast.Attribute):
+            # Block dangerous attrs regardless of parent object
             if node.attr in BLOCKED_ATTRS:
-                # Check if it's on a known-dangerous module
-                if isinstance(node.value, ast.Name) and node.value.id in ("os", "shutil", "pathlib"):
-                    return f"Blocked operation: '{node.value.id}.{node.attr}' is not allowed"
+                return f"Blocked operation: '.{node.attr}' is not allowed in editor scripts"
+            # Block dangerous dunder access (allow only safe dunders)
+            if node.attr.startswith("__") and node.attr.endswith("__"):
+                if node.attr not in SAFE_DUNDERS:
+                    return f"Blocked: dunder attribute '.{node.attr}' access is restricted"
 
         # Block dangerous builtin calls
         elif isinstance(node, ast.Call):
@@ -163,8 +190,8 @@ def sanitize_object_path(path: str, param_name: str = "object_path") -> Optional
         return f"{param_name} too long ({len(path)} chars, max 1024)"
     if not _SAFE_OBJECT_PATH_RE.match(path):
         return f"{param_name} '{path}' is not a valid object path"
-    if ".." in path.replace("..", ""):  # Allow single dots but not ..
-        pass  # UE paths legitimately use dots
+    if ".." in path:
+        return f"{param_name} contains path traversal sequence '..'"
     return None
 
 
@@ -246,7 +273,7 @@ _BLOCKED_CONSOLE_COMMANDS = frozenset({
     "killall", "disconnect", "reconnect",
 })
 
-_SAFE_CONSOLE_RE = re.compile(r'^[\w\s\.\-=,/]+$')
+_SAFE_CONSOLE_RE = re.compile(r'^[\w \t\.\-=,/]+$')
 
 
 def sanitize_console_command(cmd: str, param_name: str = "command") -> Optional[str]:

@@ -14,13 +14,14 @@ import logging
 
 logger = logging.getLogger("ue5-mcp.tools.blueprints")
 
+from ._types import MCPServer, UEBridge
 from ._validation import (
     sanitize_class_name, sanitize_label, sanitize_content_path,
     sanitize_property_name, escape_for_fstring, make_error,
 )
 
 
-def register(server, ue):
+def register(server: MCPServer, ue: UEBridge) -> None:
     @server.tool(
         name="ue_create_blueprint",
         description=(

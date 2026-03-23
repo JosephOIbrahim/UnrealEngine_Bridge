@@ -26,15 +26,11 @@ if _parent_dir not in sys.path:
 from mcp.server.fastmcp import FastMCP
 from remote_control_bridge import AsyncUnrealRemoteControl, BASE_URL
 from ue_mcp.__version__ import __version__
+from ue_mcp.logging import configure_logging
 from ue_mcp.metrics import metrics
 from ue_mcp.tools import register_all_tools
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    stream=sys.stderr,
-)
-logger = logging.getLogger("ue5-mcp")
+logger = configure_logging()
 
 # Create server and bridge
 server = FastMCP("unreal-engine")

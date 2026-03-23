@@ -308,3 +308,108 @@ class TestSanitizeMaterialValue:
 
     def test_texture_rejects_traversal(self):
         assert sanitize_material_value("/Game/../etc/passwd", "texture") is not None
+
+
+class TestSandboxBypassPrevention:
+    """Tests for sandbox bypass vectors that were previously unblocked."""
+
+    def test_getattr_bypass_blocked(self):
+        """getattr(os, 'system') should be blocked."""
+        code = "import os\ngetattr(os, 'system')('echo pwned')"
+        result = validate_python_code(code)
+        assert result is not None
+        assert "getattr" in result.lower() or "blocked" in result.lower()
+
+    def test_getattr_safe_usage_blocked(self):
+        """getattr is blocked even for safe-looking usage (defense in depth)."""
+        code = "x = getattr(obj, 'name')"
+        result = validate_python_code(code)
+        assert result is not None
+
+    def test_importlib_blocked(self):
+        """importlib.import_module should be blocked."""
+        code = "import importlib\nimportlib.import_module('subprocess')"
+        result = validate_python_code(code)
+        assert result is not None
+        assert "importlib" in result.lower() or "blocked" in result.lower()
+
+    def test_importlib_from_blocked(self):
+        """from importlib import import_module should be blocked."""
+        code = "from importlib import import_module"
+        result = validate_python_code(code)
+        assert result is not None
+
+    def test_dunder_subclasses_blocked(self):
+        """__subclasses__ access should be blocked."""
+        code = "x = object.__subclasses__()"
+        result = validate_python_code(code)
+        assert result is not None
+        assert "__subclasses__" in result
+
+    def test_dunder_globals_blocked(self):
+        """__globals__ access should be blocked."""
+        code = "x = func.__globals__"
+        result = validate_python_code(code)
+        assert result is not None
+        assert "__globals__" in result
+
+    def test_dunder_mro_blocked(self):
+        """__mro__ access should be blocked."""
+        code = "x = str.__mro__"
+        result = validate_python_code(code)
+        assert result is not None
+
+    def test_dunder_builtins_blocked(self):
+        """__builtins__ access should be blocked."""
+        code = "x = __builtins__.__import__('os')"
+        result = validate_python_code(code)
+        assert result is not None
+
+    def test_dunder_code_blocked(self):
+        """__code__ access should be blocked."""
+        code = "x = func.__code__.co_consts"
+        result = validate_python_code(code)
+        assert result is not None
+
+    def test_dunder_reduce_blocked(self):
+        """__reduce__ access should be blocked (pickle exploit vector)."""
+        code = "x = obj.__reduce__()"
+        result = validate_python_code(code)
+        assert result is not None
+
+    def test_safe_dunders_allowed(self):
+        """Safe dunders like __init__, __str__, __repr__ should still work."""
+        code = "x = obj.__init__()\ny = str.__name__\nz = obj.__class__"
+        result = validate_python_code(code)
+        assert result is None, f"Safe dunder blocked: {result}"
+
+    def test_safe_dunder_len_allowed(self):
+        """__len__ should be allowed."""
+        code = "x = obj.__len__()"
+        result = validate_python_code(code)
+        assert result is None, f"Safe dunder blocked: {result}"
+
+    def test_blocked_attr_without_known_parent(self):
+        """Blocked attrs should be caught even without os/shutil/pathlib parent."""
+        code = "x.system('dangerous')"
+        result = validate_python_code(code)
+        assert result is not None
+        assert "system" in result.lower()
+
+    def test_chained_dangerous_attr(self):
+        """Chained access to dangerous attr should be caught."""
+        code = "a.b.c.rmtree('/tmp')"
+        result = validate_python_code(code)
+        assert result is not None
+
+    def test_unreal_safe_attrs_still_work(self):
+        """Normal unreal API calls should still pass."""
+        code = """
+import unreal
+editor = unreal.EditorLevelLibrary
+actors = editor.get_all_level_actors()
+for a in actors:
+    label = a.get_actor_label()
+"""
+        result = validate_python_code(code)
+        assert result is None, f"Unreal API blocked: {result}"

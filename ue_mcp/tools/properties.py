@@ -7,10 +7,11 @@ import logging
 
 logger = logging.getLogger("ue5-mcp.tools.properties")
 
+from ._types import MCPServer, UEBridge
 from ._validation import sanitize_object_path, sanitize_property_name, make_error
 
 
-def register(server, ue):
+def register(server: MCPServer, ue: UEBridge) -> None:
     @server.tool(
         name="ue_get_property",
         description="Read a property value from any UObject in the editor by object path and property name.",
