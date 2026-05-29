@@ -11,8 +11,10 @@ import logging
 from ._codegen import find_actor_by_label_snippet
 from ._types import MCPServer, UEBridge
 from ._validation import (
-    sanitize_label, sanitize_object_path, sanitize_console_command,
-    escape_for_fstring, make_error,
+    escape_for_fstring,
+    make_error,
+    sanitize_console_command,
+    sanitize_label,
 )
 
 logger = logging.getLogger("ue5-mcp.tools.editor")
@@ -74,8 +76,9 @@ import unreal, json
 
 success = False
 error_msg = "No undo method available"
-for method_name in ["editor_undo", "transaction_undo"]:
-    fn = getattr(unreal.EditorLevelLibrary, method_name, None)
+# editor_undo lives on EditorLevelLibrary; transaction_undo lives on SystemLibrary.
+for cls, method_name in [(unreal.EditorLevelLibrary, "editor_undo"), (unreal.SystemLibrary, "transaction_undo")]:
+    fn = getattr(cls, method_name, None)
     if fn is not None:
         try:
             fn()
@@ -108,8 +111,9 @@ import unreal, json
 
 success = False
 error_msg = "No redo method available"
-for method_name in ["editor_redo", "transaction_redo"]:
-    fn = getattr(unreal.EditorLevelLibrary, method_name, None)
+# editor_redo lives on EditorLevelLibrary; transaction_redo lives on SystemLibrary.
+for cls, method_name in [(unreal.EditorLevelLibrary, "editor_redo"), (unreal.SystemLibrary, "transaction_redo")]:
+    fn = getattr(cls, method_name, None)
     if fn is not None:
         try:
             fn()

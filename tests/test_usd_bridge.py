@@ -1,25 +1,24 @@
 """Tests for usd_bridge.py — USDA file operations, path validation, checksums."""
 
+import re
+
 import pytest
 
 from usd_bridge import (
-    _validate_bridge_path,
+    DEFAULT_BRIDGE_PATH,
     _atomic_write,
     _safe_read,
-    write_question_usda,
-    read_answer_usda,
-    set_variant,
-    write_ready_usda,
-    validate_bridge_state,
+    _validate_bridge_path,
     compute_checksum,
     generate_exec_anchor,
-    parse_exec_anchor,
     get_expert_from_signals,
-    DEFAULT_BRIDGE_PATH,
+    parse_exec_anchor,
+    read_answer_usda,
+    set_variant,
+    validate_bridge_state,
+    write_question_usda,
+    write_ready_usda,
 )
-from pathlib import Path
-import re
-
 
 # ── Path validation ──────────────────────────────────────────────────────────
 

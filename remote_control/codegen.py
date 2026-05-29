@@ -4,7 +4,6 @@ All UE5 Python script strings are built here, once.
 No I/O -- pure string construction.
 """
 
-from typing import Optional
 
 
 class _CodeGen:
@@ -15,7 +14,7 @@ class _CodeGen:
         class_path: str,
         location: tuple[float, float, float],
         rotation: tuple[float, float, float],
-        label: Optional[str],
+        label: str | None,
     ) -> str:
         loc_str = f"unreal.Vector({location[0]}, {location[1]}, {location[2]})"
         rot_str = f"unreal.Rotator({rotation[0]}, {rotation[1]}, {rotation[2]})"
@@ -49,7 +48,7 @@ else:
 """
 
     @staticmethod
-    def list_actors_code(class_filter: Optional[str] = None) -> str:
+    def list_actors_code(class_filter: str | None = None) -> str:
         filter_line = ""
         if class_filter:
             filter_line = f"""
@@ -73,9 +72,9 @@ print("RESULT:" + json.dumps(results))
     @staticmethod
     def set_actor_transform_code(
         actor_path: str,
-        location: Optional[tuple[float, float, float]],
-        rotation: Optional[tuple[float, float, float]],
-        scale: Optional[tuple[float, float, float]],
+        location: tuple[float, float, float] | None,
+        rotation: tuple[float, float, float] | None,
+        scale: tuple[float, float, float] | None,
     ) -> str:
         lines = ["import unreal"]
         lines.append(f'actor = unreal.EditorAssetLibrary.load_asset("{actor_path}")')
@@ -92,7 +91,7 @@ print("RESULT:" + json.dumps(results))
         return "\n".join(lines)
 
     @staticmethod
-    def find_assets_code(search_pattern: str, class_filter: Optional[str] = None) -> str:
+    def find_assets_code(search_pattern: str, class_filter: str | None = None) -> str:
         return f"""
 import unreal, json
 registry = unreal.AssetRegistryHelpers.get_asset_registry()

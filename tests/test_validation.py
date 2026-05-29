@@ -1,21 +1,19 @@
 """Tests for ue_mcp/tools/_validation.py — AST sandbox and input sanitizers."""
 
-import pytest
 
 from ue_mcp.tools._validation import (
-    validate_python_code,
-    sanitize_label,
-    sanitize_class_name,
-    sanitize_content_path,
-    sanitize_object_path,
-    sanitize_property_name,
-    sanitize_material_value,
-    sanitize_console_command,
-    sanitize_filename,
     escape_for_fstring,
     make_error,
+    sanitize_class_name,
+    sanitize_console_command,
+    sanitize_content_path,
+    sanitize_filename,
+    sanitize_label,
+    sanitize_material_value,
+    sanitize_object_path,
+    sanitize_property_name,
+    validate_python_code,
 )
-
 
 # ── AST sandbox ──────────────────────────────────────────────────────────────
 

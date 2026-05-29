@@ -5,7 +5,6 @@ import json
 import logging
 import sys
 import time
-from typing import Optional
 
 
 class JSONFormatter(logging.Formatter):
@@ -35,23 +34,32 @@ def configure_logging(level: str = "INFO", json_format: bool = True) -> logging.
         json_format: If True, use JSON formatter. If False, use standard formatter.
 
     Returns:
-        The configured root logger for ue5-mcp.
+        The configured ue5-mcp logger.
     """
-    logger = logging.getLogger("ue5-mcp")
-    logger.setLevel(getattr(logging, level.upper(), logging.INFO))
+    lvl = getattr(logging, level.upper(), logging.INFO)
 
-    # Remove existing handlers to avoid duplicates on re-init
-    for handler in logger.handlers[:]:
-        logger.removeHandler(handler)
+    def _make_handler() -> logging.Handler:
+        h = logging.StreamHandler(sys.stderr)
+        if json_format:
+            h.setFormatter(JSONFormatter())
+        else:
+            h.setFormatter(logging.Formatter(
+                "%(asctime)s %(levelname)s [%(name)s] %(message)s"
+            ))
+        return h
 
-    handler = logging.StreamHandler(sys.stderr)
-    if json_format:
-        handler.setFormatter(JSONFormatter())
-    else:
-        handler.setFormatter(logging.Formatter(
-            "%(asctime)s %(levelname)s [%(name)s] %(message)s"
-        ))
-    logger.addHandler(handler)
-    logger.propagate = False
+    # Configure BOTH logger trees: the MCP server ("ue5-mcp.*") and the USD bridge
+    # ("ue5-bridge.*"). Each gets its own handler with propagate=False. Without the
+    # ue5-bridge handler, usd_bridge records had no handler in their chain and were
+    # silently dropped below WARNING once basicConfig was removed.
+    configured = []
+    for name in ("ue5-mcp", "ue5-bridge"):
+        lg = logging.getLogger(name)
+        lg.setLevel(lvl)
+        for handler in lg.handlers[:]:  # avoid duplicate handlers on re-init
+            lg.removeHandler(handler)
+        lg.addHandler(_make_handler())
+        lg.propagate = False
+        configured.append(lg)
 
-    return logger
+    return configured[0]

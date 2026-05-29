@@ -9,10 +9,10 @@ from __future__ import annotations
 import json
 import logging
 
-logger = logging.getLogger("ue5-mcp.tools.mograph")
-
 from ._types import MCPServer, UEBridge
-from ._validation import sanitize_label, sanitize_content_path, escape_for_fstring, make_error
+from ._validation import escape_for_fstring, make_error, sanitize_content_path, sanitize_label
+
+logger = logging.getLogger("ue5-mcp.tools.mograph")
 
 
 def register(server: MCPServer, ue: UEBridge) -> None:

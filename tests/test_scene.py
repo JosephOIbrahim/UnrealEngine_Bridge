@@ -2,10 +2,11 @@
 
 import ast
 import json
+
 import pytest
 from mcp.server.fastmcp import FastMCP
 
-from ue_mcp.tools._validation import sanitize_label, escape_for_fstring
+from ue_mcp.tools._validation import escape_for_fstring, sanitize_label
 from ue_mcp.tools.scene import register
 
 

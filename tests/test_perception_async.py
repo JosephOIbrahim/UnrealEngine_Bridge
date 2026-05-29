@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from mcp.server.fastmcp import FastMCP
 
-from ue_mcp.tools.perception import register, _compute_scene_diff
+from ue_mcp.tools.perception import _compute_scene_diff, register
 
 
 @pytest.fixture

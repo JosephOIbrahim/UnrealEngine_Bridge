@@ -9,11 +9,15 @@ from __future__ import annotations
 
 import json
 import logging
+import textwrap
 
 from ._types import MCPServer, UEBridge
 from ._validation import (
-    sanitize_label, sanitize_content_path, sanitize_property_name,
-    sanitize_material_value, escape_for_fstring, make_error,
+    escape_for_fstring,
+    make_error,
+    sanitize_content_path,
+    sanitize_label,
+    sanitize_material_value,
 )
 
 logger = logging.getLogger("ue5-mcp.tools.materials")
@@ -126,6 +130,10 @@ else:
     raise SystemExit
 """.strip()
 
+        # set_line may be multi-line (vector/texture); indent every line to sit
+        # inside the else-block. Interpolating raw would leave lines 2+ at column 0,
+        # breaking out of the block and raising IndentationError.
+        indented_set = textwrap.indent(set_line, "    ")
         code = f"""
 import unreal, json
 
@@ -133,7 +141,7 @@ mi = unreal.EditorAssetLibrary.load_asset("{safe_path}")
 if mi is None:
     print("RESULT:" + json.dumps({{"error": "Material not found: {safe_path}"}}))
 else:
-    {set_line}
+{indented_set}
     unreal.EditorAssetLibrary.save_asset("{safe_path}")
     print("RESULT:" + json.dumps({{"set": True, "material": "{safe_path}", "parameter": "{safe_param}", "type": "{param_type}"}}))
 """

@@ -5,13 +5,16 @@ from __future__ import annotations
 import json
 import logging
 
-logger = logging.getLogger("ue5-mcp.tools.assets")
-
 from ._types import MCPServer, UEBridge
 from ._validation import (
-    sanitize_label, sanitize_class_name, sanitize_content_path,
-    escape_for_fstring, make_error,
+    escape_for_fstring,
+    make_error,
+    sanitize_class_name,
+    sanitize_content_path,
+    sanitize_label,
 )
+
+logger = logging.getLogger("ue5-mcp.tools.assets")
 
 
 def register(server: MCPServer, ue: UEBridge) -> None:

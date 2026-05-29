@@ -1,11 +1,10 @@
 """Tests for structured console output parsers."""
 from __future__ import annotations
 
-import pytest
 from ue_mcp.tools._console_parsers import (
     parse_stat_fps,
-    parse_stat_unit,
     parse_stat_memory,
+    parse_stat_unit,
     try_parse_output,
 )
 

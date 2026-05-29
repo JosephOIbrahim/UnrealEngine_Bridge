@@ -19,7 +19,6 @@ from pathlib import Path
 import httpx
 
 from ._types import MCPServer, UEBridge
-from ._validation import make_error
 
 logger = logging.getLogger("ue5-mcp.tools.perception")
 
@@ -191,7 +190,9 @@ def _compute_scene_diff(snap1: dict, snap2: dict) -> dict:
     r1 = snap1.get("result") or snap1
     r2 = snap2.get("result") or snap2
 
-    if "error" in r1 or "error" in r2:
+    # Truthiness, not key-presence: execute_python always returns an "error" key
+    # (None on success), so `"error" in r1` is True even when the capture succeeded.
+    if r1.get("error") or r2.get("error"):
         return {"error": "Failed to capture one or both snapshots",
                 "snap1_error": r1.get("error"), "snap2_error": r2.get("error")}
 
@@ -212,7 +213,7 @@ def _compute_scene_diff(snap1: dict, snap2: dict) -> dict:
     for label in common:
         loc1 = actors1[label].get("location", [0, 0, 0])
         loc2 = actors2[label].get("location", [0, 0, 0])
-        dist = sum((a - b) ** 2 for a, b in zip(loc1, loc2)) ** 0.5
+        dist = sum((a - b) ** 2 for a, b in zip(loc1, loc2, strict=False)) ** 0.5
         if dist > 1.0:  # threshold: 1 unreal unit
             diff["changes"].append({
                 "type": "actor_moved", "label": label,
@@ -225,7 +226,7 @@ def _compute_scene_diff(snap1: dict, snap2: dict) -> dict:
     if cam1.get("available") and cam2.get("available"):
         cam_loc1 = cam1.get("location", [0, 0, 0])
         cam_loc2 = cam2.get("location", [0, 0, 0])
-        cam_dist = sum((a - b) ** 2 for a, b in zip(cam_loc1, cam_loc2)) ** 0.5
+        cam_dist = sum((a - b) ** 2 for a, b in zip(cam_loc1, cam_loc2, strict=False)) ** 0.5
         if cam_dist > 1.0:
             diff["changes"].append({
                 "type": "camera_moved",

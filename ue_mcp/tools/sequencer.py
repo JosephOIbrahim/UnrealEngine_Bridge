@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 
-from ._validation import sanitize_label, sanitize_content_path, sanitize_property_name, make_error, escape_for_fstring
+from ._validation import escape_for_fstring, make_error, sanitize_content_path, sanitize_label, sanitize_property_name
 
 logger = logging.getLogger("ue5-mcp.tools.sequencer")
 
@@ -28,10 +28,10 @@ def register(server, ue) -> None:
         """Create a new LevelSequence asset."""
         err = sanitize_label(name, "name")
         if err:
-            return json.dumps(make_error(err))
+            return make_error(err)
         err = sanitize_content_path(folder, "folder")
         if err:
-            return json.dumps(make_error(err))
+            return make_error(err)
 
         safe_name = escape_for_fstring(name)
         safe_folder = escape_for_fstring(folder)
@@ -73,7 +73,7 @@ else:
         """Play a Level Sequence from a given time with a given playback rate."""
         err = sanitize_content_path(sequence_path, "sequence_path")
         if err:
-            return json.dumps(make_error(err))
+            return make_error(err)
 
         safe_path = escape_for_fstring(sequence_path)
 
@@ -121,10 +121,10 @@ else:
         """Add an actor as a binding in a Level Sequence."""
         err = sanitize_content_path(sequence_path, "sequence_path")
         if err:
-            return json.dumps(make_error(err))
+            return make_error(err)
         err = sanitize_label(actor_label, "actor_label")
         if err:
-            return json.dumps(make_error(err))
+            return make_error(err)
 
         safe_path = escape_for_fstring(sequence_path)
         safe_label = escape_for_fstring(actor_label)
@@ -186,13 +186,13 @@ else:
         """Add a keyframe at a given time for a property on a bound actor."""
         err = sanitize_content_path(sequence_path, "sequence_path")
         if err:
-            return json.dumps(make_error(err))
+            return make_error(err)
         err = sanitize_label(actor_label, "actor_label")
         if err:
-            return json.dumps(make_error(err))
+            return make_error(err)
         err = sanitize_property_name(property_name, "property_name")
         if err:
-            return json.dumps(make_error(err))
+            return make_error(err)
 
         safe_path = escape_for_fstring(sequence_path)
         safe_label = escape_for_fstring(actor_label)
@@ -228,18 +228,17 @@ else:
         if actor is None:
             print("RESULT:" + json.dumps({{"error": "Actor not found: {safe_label}"}}))
         else:
-            # Use MovieSceneScripting to add keyframe
-            frame_rate = sequence.get_display_rate()
-            frame_num = unreal.FrameNumber(value=int({time_seconds} * frame_rate.numerator / frame_rate.denominator))
-
+            # NOTE: programmatic keyframe insertion via MovieSceneScripting is not yet
+            # implemented. Report honestly so callers never assume a key was written.
             print("RESULT:" + json.dumps({{
-                "success": True,
+                "success": False,
+                "implemented": False,
+                "error": "ue_add_keyframe is not implemented yet — NO keyframe was added. Bind the actor and key the property in the Sequencer UI.",
                 "sequence": "{safe_path}",
                 "actor": "{safe_label}",
                 "property": "{safe_prop}",
                 "time": {time_seconds},
                 "value": {value_repr},
-                "note": "Keyframe scheduling requested. Use Sequencer UI to verify track binding."
             }}))
     except Exception as e:
         print("RESULT:" + json.dumps({{"error": str(e)}}))

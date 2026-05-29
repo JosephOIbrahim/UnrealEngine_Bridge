@@ -6,10 +6,9 @@ structured JSON for easier consumption by AI agents.
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 
-def parse_stat_fps(output: str) -> Optional[dict]:
+def parse_stat_fps(output: str) -> dict | None:
     """Parse 'stat fps' output into structured data."""
     fps_match = re.search(r'(\d+(?:\.\d+)?)\s*fps', output, re.IGNORECASE)
     ms_match = re.search(r'(\d+(?:\.\d+)?)\s*ms', output, re.IGNORECASE)
@@ -23,7 +22,7 @@ def parse_stat_fps(output: str) -> Optional[dict]:
     return None
 
 
-def parse_stat_unit(output: str) -> Optional[dict]:
+def parse_stat_unit(output: str) -> dict | None:
     """Parse 'stat unit' output into structured data."""
     result = {"command": "stat unit"}
     patterns = {
@@ -43,7 +42,7 @@ def parse_stat_unit(output: str) -> Optional[dict]:
     return result if found else None
 
 
-def parse_stat_memory(output: str) -> Optional[dict]:
+def parse_stat_memory(output: str) -> dict | None:
     """Parse 'stat memory' or 'stat memorychurn' output."""
     result = {"command": "stat memory"}
     patterns = {
@@ -76,7 +75,7 @@ PARSERS: dict[str, callable] = {
 }
 
 
-def try_parse_output(command: str, output: str) -> Optional[dict]:
+def try_parse_output(command: str, output: str) -> dict | None:
     """Try to parse console command output into structured data.
 
     Returns structured dict if a parser matches, None otherwise.

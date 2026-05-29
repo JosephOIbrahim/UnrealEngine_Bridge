@@ -347,11 +347,23 @@ def Xform "BridgeState" (
 {{
     variantSet "sync_status" = {{
         "idle" {{ }}
-        "question_pending" {{ double timeout_seconds = 300.0; string pending_since = "" }}
-        "answer_received" {{ string received_at = "" }}
-        "transition" {{ string transition_direction = "" }}
-        "complete" {{ string completion_time = "" }}
-        "error" {{ string error_message = ""; string error_code = "" }}
+        "question_pending" {{
+            double timeout_seconds = 300.0
+            string pending_since = ""
+        }}
+        "answer_received" {{
+            string received_at = ""
+        }}
+        "transition" {{
+            string transition_direction = ""
+        }}
+        "complete" {{
+            string completion_time = ""
+        }}
+        "error" {{
+            string error_message = ""
+            string error_code = ""
+        }}
     }}
 
     variantSet "message_type" = {{
@@ -376,9 +388,24 @@ def Xform "BridgeState" (
     }}
 
     def Xform "Options" {{
-        def Xform "Option_0" {{ int index = 0; string label = ""; string direction = ""; string semantic_tag = "" }}
-        def Xform "Option_1" {{ int index = 1; string label = ""; string direction = ""; string semantic_tag = "" }}
-        def Xform "Option_2" {{ int index = 2; string label = ""; string direction = ""; string semantic_tag = "" }}
+        def Xform "Option_0" {{
+            int index = 0
+            string label = ""
+            string direction = ""
+            string semantic_tag = ""
+        }}
+        def Xform "Option_1" {{
+            int index = 1
+            string label = ""
+            string direction = ""
+            string semantic_tag = ""
+        }}
+        def Xform "Option_2" {{
+            int index = 2
+            string label = ""
+            string direction = ""
+            string semantic_tag = ""
+        }}
     }}
 
     def Xform "Answer" {{
@@ -390,8 +417,19 @@ def Xform "BridgeState" (
         string timestamp = ""
     }}
 
-    def Xform "Transition" {{ string direction = ""; string next_scene = ""; float progress = 0.0; string from_question_id = "" }}
-    def Xform "Finale" {{ string message = ""; string usd_path = ""; string checksum = ""; int total_questions = {total_questions}; int questions_answered = 0 }}
+    def Xform "Transition" {{
+        string direction = ""
+        string next_scene = ""
+        float progress = 0.0
+        string from_question_id = ""
+    }}
+    def Xform "Finale" {{
+        string message = ""
+        string usd_path = ""
+        string checksum = ""
+        int total_questions = {total_questions}
+        int questions_answered = 0
+    }}
 
     def Xform "Ready" {{
         int total_questions = {total_questions}
@@ -401,7 +439,12 @@ def Xform "BridgeState" (
         string timestamp = "{timestamp}"
     }}
 
-    def Xform "Ack" {{ bool ready = false; string ue_version = ""; string project = ""; string timestamp = "" }}
+    def Xform "Ack" {{
+        bool ready = false
+        string ue_version = ""
+        string project = ""
+        string timestamp = ""
+    }}
     def Xform "BehavioralSignals" {{
         double last_response_time_ms = 0.0
         double average_response_time_ms = 0.0
@@ -415,7 +458,9 @@ def Xform "BridgeState" (
         string burnout_level = "GREEN"
         string momentum_phase = "cold_start"
     }}
-    def Xform "CognitiveState" {{ string placeholder = "Reference to cognitive_profile.usda" }}
+    def Xform "CognitiveState" {{
+        string placeholder = "Reference to cognitive_profile.usda"
+    }}
 }}
 '''
 

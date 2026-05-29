@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import ast
 import re
-from typing import Optional
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PYTHON CODE SANDBOX
@@ -83,7 +82,7 @@ class CodeValidationError(Exception):
     pass
 
 
-def validate_python_code(code: str) -> Optional[str]:
+def validate_python_code(code: str) -> str | None:
     """Validate Python code for safety before execution in UE5.
 
     Returns None if safe, or an error message string if blocked.
@@ -131,8 +130,10 @@ def validate_python_code(code: str) -> Optional[str]:
 # STRING SANITIZATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Valid UE identifier: alphanumeric, underscores, hyphens, spaces, dots
-_SAFE_LABEL_RE = re.compile(r'^[\w\s\-\.()]+$', re.UNICODE)
+# Valid UE identifier: alphanumeric, underscores, hyphens, spaces, dots, parens.
+# Use a literal space (not \s) so control chars — newline, CR, tab, form-feed —
+# can never pass; an embedded \n/\r would break generated Python string literals.
+_SAFE_LABEL_RE = re.compile(r'^[\w \-\.()]+$', re.UNICODE)
 
 # Valid UE class name: PascalCase identifier, no special chars
 _SAFE_CLASS_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
@@ -147,7 +148,7 @@ _SAFE_OBJECT_PATH_RE = re.compile(r'^/[A-Za-z0-9_][A-Za-z0-9_/\-\.\:]*$')
 _SAFE_PROPERTY_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
 
-def sanitize_label(label: str, param_name: str = "label") -> Optional[str]:
+def sanitize_label(label: str, param_name: str = "label") -> str | None:
     """Validate an actor label. Returns error message or None if valid."""
     if not label:
         return f"{param_name} cannot be empty"
@@ -158,7 +159,7 @@ def sanitize_label(label: str, param_name: str = "label") -> Optional[str]:
     return None
 
 
-def sanitize_class_name(class_name: str, param_name: str = "class_name") -> Optional[str]:
+def sanitize_class_name(class_name: str, param_name: str = "class_name") -> str | None:
     """Validate a UE class name. Returns error message or None if valid."""
     if not class_name:
         return f"{param_name} cannot be empty"
@@ -169,7 +170,7 @@ def sanitize_class_name(class_name: str, param_name: str = "class_name") -> Opti
     return None
 
 
-def sanitize_content_path(path: str, param_name: str = "path") -> Optional[str]:
+def sanitize_content_path(path: str, param_name: str = "path") -> str | None:
     """Validate a UE content path (/Game/..., /Engine/...). Returns error message or None."""
     if not path:
         return f"{param_name} cannot be empty"
@@ -182,7 +183,7 @@ def sanitize_content_path(path: str, param_name: str = "path") -> Optional[str]:
     return None
 
 
-def sanitize_object_path(path: str, param_name: str = "object_path") -> Optional[str]:
+def sanitize_object_path(path: str, param_name: str = "object_path") -> str | None:
     """Validate a UE object path (includes : and . for subobjects). Returns error message or None."""
     if not path:
         return f"{param_name} cannot be empty"
@@ -195,7 +196,7 @@ def sanitize_object_path(path: str, param_name: str = "object_path") -> Optional
     return None
 
 
-def sanitize_property_name(name: str, param_name: str = "property_name") -> Optional[str]:
+def sanitize_property_name(name: str, param_name: str = "property_name") -> str | None:
     """Validate a property name. Returns error message or None."""
     if not name:
         return f"{param_name} cannot be empty"
@@ -206,7 +207,7 @@ def sanitize_property_name(name: str, param_name: str = "property_name") -> Opti
     return None
 
 
-def sanitize_material_value(value: str, param_type: str, param_name: str = "value") -> Optional[str]:
+def sanitize_material_value(value: str, param_type: str, param_name: str = "value") -> str | None:
     """Validate a material parameter value based on its type.
 
     - scalar: a single numeric string (e.g. "0.5", "1.0", "-0.3")
@@ -257,10 +258,18 @@ def make_error(message: str) -> str:
 def escape_for_fstring(s: str) -> str:
     """Escape a string for safe embedding in an f-string Python code template.
 
-    Handles backslashes, quotes, and newlines to prevent injection
-    when building UE5 Python scripts via f-string templates.
+    Handles backslashes, quotes, and line terminators (newline AND carriage
+    return) to prevent injection / string-literal break-out when building UE5
+    Python scripts via f-string templates. A bare \\r left unescaped terminates
+    a Python string literal just like \\n.
     """
-    return s.replace("\\", "\\\\").replace('"', '\\"').replace("'", "\\'").replace("\n", "\\n")
+    return (
+        s.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("'", "\\'")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -276,7 +285,7 @@ _BLOCKED_CONSOLE_COMMANDS = frozenset({
 _SAFE_CONSOLE_RE = re.compile(r'^[\w \t\.\-=,/]+$')
 
 
-def sanitize_console_command(cmd: str, param_name: str = "command") -> Optional[str]:
+def sanitize_console_command(cmd: str, param_name: str = "command") -> str | None:
     """Validate a UE console command. Returns error message or None if valid."""
     if not cmd:
         return f"{param_name} cannot be empty"
@@ -291,7 +300,7 @@ def sanitize_console_command(cmd: str, param_name: str = "command") -> Optional[
     return None
 
 
-def sanitize_filename(name: str, param_name: str = "filename") -> Optional[str]:
+def sanitize_filename(name: str, param_name: str = "filename") -> str | None:
     """Validate a filename (no path separators). Returns error message or None if valid."""
     if not name:
         return f"{param_name} cannot be empty"

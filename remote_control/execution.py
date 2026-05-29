@@ -6,9 +6,9 @@ import time
 import uuid
 
 from .constants import (
+    MAX_RESPONSE_BYTES,
     RESULT_POLL_INTERVAL,
     RESULT_POLL_TIMEOUT,
-    MAX_RESPONSE_BYTES,
     logger,
 )
 
@@ -120,7 +120,7 @@ def _read_result_file(result_file: str) -> dict:
             "error": f"Result file too large ({file_size} bytes, max {MAX_RESPONSE_BYTES}). "
                      f"Reduce output size or use file-based data transfer.",
         }
-    with open(result_file, "r", encoding="utf-8") as f:
+    with open(result_file, encoding="utf-8") as f:
         return json.load(f)
 
 

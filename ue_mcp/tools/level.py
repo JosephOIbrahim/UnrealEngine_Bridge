@@ -6,7 +6,7 @@ import json
 import logging
 
 from ._types import MCPServer, UEBridge
-from ._validation import sanitize_content_path, escape_for_fstring, make_error
+from ._validation import escape_for_fstring, make_error, sanitize_content_path
 
 logger = logging.getLogger("ue5-mcp.tools.level")
 

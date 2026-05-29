@@ -92,13 +92,16 @@ def _write_question_pxr(
     """Write question using pxr USD library."""
     from pxr import Usd
 
-    # Create or open stage
-    if file_path.exists():
-        stage = Usd.Stage.Open(str(file_path))
-    else:
-        stage = Usd.Stage.CreateNew(str(file_path))
-        stage.SetDefaultPrim(stage.DefinePrim("/BridgeState", "Xform"))
+    # For a brand-new file, an empty pxr stage has none of the BridgeState schema
+    # (Message/Options/Answer prims, variant sets), so the populate-by-guard logic
+    # below would write nothing. Delegate the initial creation to the text writer,
+    # which emits a complete, valid USDA; pxr then opens it for incremental updates.
+    if not file_path.exists():
+        return _write_question_text(
+            file_path, question_id, text, options, index, total, scene, timestamp
+        )
 
+    stage = Usd.Stage.Open(str(file_path))
     root = stage.GetPrimAtPath("/BridgeState")
 
     # Set variants for state machine
@@ -266,10 +269,19 @@ def Xform "BridgeState" (
             double timeout_seconds = 300.0
             string pending_since = "{timestamp}"
         }}
-        "answer_received" {{ string received_at = "" }}
-        "transition" {{ string transition_direction = "" }}
-        "complete" {{ string completion_time = "" }}
-        "error" {{ string error_message = ""; string error_code = "" }}
+        "answer_received" {{
+            string received_at = ""
+        }}
+        "transition" {{
+            string transition_direction = ""
+        }}
+        "complete" {{
+            string completion_time = ""
+        }}
+        "error" {{
+            string error_message = ""
+            string error_code = ""
+        }}
     }}
 
     variantSet "message_type" = {{

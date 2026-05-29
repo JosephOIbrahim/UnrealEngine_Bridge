@@ -12,10 +12,9 @@ Usage (registered via `claude mcp add`):
 
 import atexit
 import glob
-import sys
-import os
 import json
-import logging
+import os
+import sys
 import tempfile
 
 # Ensure the ue-bridge root is importable (for remote_control_bridge)
@@ -24,7 +23,8 @@ if _parent_dir not in sys.path:
     sys.path.insert(0, _parent_dir)
 
 from mcp.server.fastmcp import FastMCP
-from remote_control_bridge import AsyncUnrealRemoteControl, BASE_URL
+
+from remote_control_bridge import BASE_URL, AsyncUnrealRemoteControl
 from ue_mcp.__version__ import __version__
 from ue_mcp.logging import configure_logging
 from ue_mcp.metrics import metrics

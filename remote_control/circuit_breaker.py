@@ -58,6 +58,16 @@ class CircuitBreaker:
         self._failure_count = 0
         self._half_open_in_flight = 0
 
+    def reset_probe(self):
+        """Release an in-flight HALF_OPEN probe slot without recording success/failure.
+
+        Used when a request fails for a reason unrelated to UE connectivity (e.g. a
+        local file-I/O error while preparing the script). Without this, an exception
+        that skips both record_success and record_failure would leave
+        _half_open_in_flight stuck at 1, permanently wedging the breaker in HALF_OPEN.
+        """
+        self._half_open_in_flight = 0
+
     def record_failure(self):
         self._failure_count += 1
         self._last_failure_time = time.time()

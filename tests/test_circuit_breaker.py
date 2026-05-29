@@ -2,8 +2,6 @@
 
 import time
 
-import pytest
-
 from remote_control_bridge import CircuitBreaker
 
 

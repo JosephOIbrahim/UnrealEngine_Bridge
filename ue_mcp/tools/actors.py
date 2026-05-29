@@ -7,8 +7,11 @@ import logging
 
 from ._types import MCPServer, UEBridge
 from ._validation import (
-    sanitize_class_name, sanitize_label, sanitize_object_path,
-    escape_for_fstring, make_error,
+    escape_for_fstring,
+    make_error,
+    sanitize_class_name,
+    sanitize_label,
+    sanitize_object_path,
 )
 
 logger = logging.getLogger("ue5-mcp.tools.actors")

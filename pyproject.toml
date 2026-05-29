@@ -46,3 +46,8 @@ line-length = 120
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# mcp_server.py inserts the repo root on sys.path before importing first-party
+# modules, so those imports legitimately come after executable statements.
+"ue_mcp/mcp_server.py" = ["E402"]
