@@ -1,6 +1,8 @@
 // PixelBus.h
-// Lock-free ring buffer with latest-frame latch semantics.
-// Producer (render thread) writes frames, consumer (HTTP handler) reads the latest.
+// Triple-buffered latest-frame latch. The producer (render thread) writes frames
+// and the consumer (HTTP/game thread) reads the latest; all slot access is guarded
+// by a mutex so a reader's pixel copy can't be torn by the producer reusing a slot.
+// The latest-frame counter stays atomic for cheap lock-free "is there a new frame?".
 
 #pragma once
 
@@ -51,6 +53,7 @@ private:
 	TAtomic<int32> WriteIndex;
 	TAtomic<int64> LatestFrame;
 
-	// Critical section for metadata attachment (game thread only)
-	mutable FCriticalSection MetadataLock;
+	// Guards all slot access across the render-thread producer and the consumer
+	// thread (read + metadata attach), preventing torn pixel-array copies.
+	mutable FCriticalSection BusLock;
 };

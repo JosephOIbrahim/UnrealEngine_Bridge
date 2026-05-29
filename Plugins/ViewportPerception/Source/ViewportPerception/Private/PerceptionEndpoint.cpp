@@ -12,6 +12,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "Serialization/JsonReader.h"
+#include "Containers/Ticker.h"
 
 FPerceptionEndpoint::FPerceptionEndpoint(UViewportPerceptionSubsystem* InSubsystem)
 	: Subsystem(InSubsystem)
@@ -135,70 +136,7 @@ bool FPerceptionEndpoint::HandleFrame(const FHttpServerRequest& Request,
 		return true;
 	}
 
-	// Build JSON response
-	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
-
-	// Base64 encode the image
-	FString ImageBase64 = FBase64::Encode(Packet.ImageData.GetData(), Packet.ImageData.Num());
-	Root->SetStringField(TEXT("image"), ImageBase64);
-	Root->SetNumberField(TEXT("width"), Packet.Width);
-	Root->SetNumberField(TEXT("height"), Packet.Height);
-	Root->SetStringField(TEXT("format"),
-		Packet.Format == EPerceptionImageFormat::PNG ? TEXT("png") : TEXT("jpeg"));
-	Root->SetNumberField(TEXT("frame_number"), static_cast<double>(Packet.FrameNumber));
-	Root->SetNumberField(TEXT("timestamp"), Packet.Timestamp);
-
-	// Camera
-	TSharedRef<FJsonObject> CameraObj = MakeShared<FJsonObject>();
-	TArray<TSharedPtr<FJsonValue>> LocArr;
-	LocArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Location.X));
-	LocArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Location.Y));
-	LocArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Location.Z));
-	CameraObj->SetArrayField(TEXT("location"), LocArr);
-
-	TArray<TSharedPtr<FJsonValue>> RotArr;
-	RotArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Rotation.Pitch));
-	RotArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Rotation.Yaw));
-	RotArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Rotation.Roll));
-	CameraObj->SetArrayField(TEXT("rotation"), RotArr);
-	CameraObj->SetNumberField(TEXT("fov"), Packet.Metadata.Camera.FOV);
-	Root->SetObjectField(TEXT("camera"), CameraObj);
-
-	// Viewport
-	TSharedRef<FJsonObject> ViewportObj = MakeShared<FJsonObject>();
-	TArray<TSharedPtr<FJsonValue>> SizeArr;
-	SizeArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.ViewportSize.X));
-	SizeArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.ViewportSize.Y));
-	ViewportObj->SetArrayField(TEXT("size"), SizeArr);
-	ViewportObj->SetStringField(TEXT("type"), Packet.Metadata.ViewportType);
-	Root->SetObjectField(TEXT("viewport"), ViewportObj);
-
-	// Selection
-	TArray<TSharedPtr<FJsonValue>> SelArr;
-	for (const FString& Name : Packet.Metadata.SelectedActors)
-	{
-		SelArr.Add(MakeShared<FJsonValueString>(Name));
-	}
-	Root->SetArrayField(TEXT("selection"), SelArr);
-
-	// Scene
-	TSharedRef<FJsonObject> SceneObj = MakeShared<FJsonObject>();
-	SceneObj->SetStringField(TEXT("map"), Packet.Metadata.MapName);
-	SceneObj->SetNumberField(TEXT("actor_count"), Packet.Metadata.ActorCount);
-	Root->SetObjectField(TEXT("scene"), SceneObj);
-
-	// Timing
-	TSharedRef<FJsonObject> TimingObj = MakeShared<FJsonObject>();
-	TimingObj->SetNumberField(TEXT("delta_time"), Packet.Metadata.DeltaTime);
-	TimingObj->SetNumberField(TEXT("fps"), Packet.Metadata.FPS);
-	Root->SetObjectField(TEXT("timing"), TimingObj);
-
-	// Serialize
-	FString JsonBody;
-	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonBody);
-	FJsonSerializer::Serialize(Root, Writer);
-
-	SendJsonResponse(OnComplete, JsonBody);
+	SendJsonResponse(OnComplete, BuildPacketJson(Packet));
 	return true;
 }
 
@@ -330,102 +268,127 @@ bool FPerceptionEndpoint::HandleSingle(const FHttpServerRequest& Request,
 		return true;
 	}
 
-	// If not capturing, start a temporary capture
+	// If not already capturing, request a one-shot frame.
 	const bool WasCapturing = Subsystem->IsCapturing();
 	if (!WasCapturing)
 	{
 		Subsystem->RequestSingleFrame();
 	}
 
-	// Give the frame a moment to arrive, then try to read
-	// We schedule a delayed response via async
-	AsyncTask(ENamedThreads::GameThread, [this, OnComplete, WasCapturing]()
-	{
-		if (!Subsystem)
-		{
-			SendJsonResponse(OnComplete, TEXT("{\"error\":\"Subsystem destroyed\"}"), 500);
-			return;
-		}
+	// Poll for the frame on the core ticker — game thread, but NON-BLOCKING (no
+	// FPlatformProcess::Sleep). We capture a weak subsystem pointer rather than
+	// `this`, so the deferred callback is safe even if the endpoint/subsystem is
+	// torn down before the frame arrives.
+	TWeakObjectPtr<UViewportPerceptionSubsystem> WeakSub(Subsystem);
+	const double StartTime = FPlatformTime::Seconds();
+	constexpr double MaxWaitSeconds = 0.5;
 
-		// Try to get a frame with a brief spin (up to 500ms)
-		FPerceptionPacket Packet;
-		constexpr float MaxWait = 0.5f;
-		constexpr float PollInterval = 0.05f;
-		float Waited = 0.0f;
-
-		while (Waited < MaxWait)
+	FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda(
+		[WeakSub, OnComplete, WasCapturing, StartTime](float /*DeltaTime*/) -> bool
 		{
-			Packet = Subsystem->GetLatestPacket();
+			UViewportPerceptionSubsystem* Sub = WeakSub.Get();
+			if (!Sub)
+			{
+				SendJsonResponse(OnComplete, TEXT("{\"error\":\"Subsystem destroyed\"}"), 500);
+				return false;  // stop ticking
+			}
+
+			FPerceptionPacket Packet = Sub->GetLatestPacket();
 			if (Packet.bValid)
 			{
-				break;
+				if (!WasCapturing)
+				{
+					Sub->StopCapture();
+				}
+				SendJsonResponse(OnComplete, BuildPacketJson(Packet));
+				return false;
 			}
-			FPlatformProcess::Sleep(PollInterval);
-			Waited += PollInterval;
-		}
 
-		// Stop if we started it
-		if (!WasCapturing)
-		{
-			Subsystem->StopCapture();
-		}
+			if ((FPlatformTime::Seconds() - StartTime) >= MaxWaitSeconds)
+			{
+				if (!WasCapturing)
+				{
+					Sub->StopCapture();
+				}
+				SendJsonResponse(OnComplete, TEXT("{\"error\":\"Capture timed out\"}"), 408);
+				return false;
+			}
 
-		if (!Packet.bValid)
-		{
-			SendJsonResponse(OnComplete, TEXT("{\"error\":\"Capture timed out\"}"), 408);
-			return;
-		}
+			return true;  // keep polling next tick
+		}));
 
-		// Build the same JSON response as HandleFrame
-		TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
-		FString ImageBase64 = FBase64::Encode(Packet.ImageData.GetData(), Packet.ImageData.Num());
-		Root->SetStringField(TEXT("image"), ImageBase64);
-		Root->SetNumberField(TEXT("width"), Packet.Width);
-		Root->SetNumberField(TEXT("height"), Packet.Height);
-		Root->SetStringField(TEXT("format"),
-			Packet.Format == EPerceptionImageFormat::PNG ? TEXT("png") : TEXT("jpeg"));
-		Root->SetNumberField(TEXT("frame_number"), static_cast<double>(Packet.FrameNumber));
-		Root->SetNumberField(TEXT("timestamp"), Packet.Timestamp);
+	return true;  // responding asynchronously
+}
 
-		TSharedRef<FJsonObject> CameraObj = MakeShared<FJsonObject>();
-		TArray<TSharedPtr<FJsonValue>> LocArr;
-		LocArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Location.X));
-		LocArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Location.Y));
-		LocArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Location.Z));
-		CameraObj->SetArrayField(TEXT("location"), LocArr);
-		TArray<TSharedPtr<FJsonValue>> RotArr;
-		RotArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Rotation.Pitch));
-		RotArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Rotation.Yaw));
-		RotArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Rotation.Roll));
-		CameraObj->SetArrayField(TEXT("rotation"), RotArr);
-		CameraObj->SetNumberField(TEXT("fov"), Packet.Metadata.Camera.FOV);
-		Root->SetObjectField(TEXT("camera"), CameraObj);
+FString FPerceptionEndpoint::BuildPacketJson(const FPerceptionPacket& Packet)
+{
+	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
 
-		TSharedRef<FJsonObject> SceneObj = MakeShared<FJsonObject>();
-		SceneObj->SetStringField(TEXT("map"), Packet.Metadata.MapName);
-		SceneObj->SetNumberField(TEXT("actor_count"), Packet.Metadata.ActorCount);
-		Root->SetObjectField(TEXT("scene"), SceneObj);
+	// Base64-encode the image
+	FString ImageBase64 = FBase64::Encode(Packet.ImageData.GetData(), Packet.ImageData.Num());
+	Root->SetStringField(TEXT("image"), ImageBase64);
+	Root->SetNumberField(TEXT("width"), Packet.Width);
+	Root->SetNumberField(TEXT("height"), Packet.Height);
+	Root->SetStringField(TEXT("format"),
+		Packet.Format == EPerceptionImageFormat::PNG ? TEXT("png") : TEXT("jpeg"));
+	Root->SetNumberField(TEXT("frame_number"), static_cast<double>(Packet.FrameNumber));
+	Root->SetNumberField(TEXT("timestamp"), Packet.Timestamp);
 
-		TArray<TSharedPtr<FJsonValue>> SelArr;
-		for (const FString& Name : Packet.Metadata.SelectedActors)
-		{
-			SelArr.Add(MakeShared<FJsonValueString>(Name));
-		}
-		Root->SetArrayField(TEXT("selection"), SelArr);
+	// Camera
+	TSharedRef<FJsonObject> CameraObj = MakeShared<FJsonObject>();
+	TArray<TSharedPtr<FJsonValue>> LocArr;
+	LocArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Location.X));
+	LocArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Location.Y));
+	LocArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Location.Z));
+	CameraObj->SetArrayField(TEXT("location"), LocArr);
 
-		FString JsonBody;
-		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonBody);
-		FJsonSerializer::Serialize(Root, Writer);
+	TArray<TSharedPtr<FJsonValue>> RotArr;
+	RotArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Rotation.Pitch));
+	RotArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Rotation.Yaw));
+	RotArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.Camera.Rotation.Roll));
+	CameraObj->SetArrayField(TEXT("rotation"), RotArr);
+	CameraObj->SetNumberField(TEXT("fov"), Packet.Metadata.Camera.FOV);
+	Root->SetObjectField(TEXT("camera"), CameraObj);
 
-		SendJsonResponse(OnComplete, JsonBody);
-	});
+	// Viewport
+	TSharedRef<FJsonObject> ViewportObj = MakeShared<FJsonObject>();
+	TArray<TSharedPtr<FJsonValue>> SizeArr;
+	SizeArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.ViewportSize.X));
+	SizeArr.Add(MakeShared<FJsonValueNumber>(Packet.Metadata.ViewportSize.Y));
+	ViewportObj->SetArrayField(TEXT("size"), SizeArr);
+	ViewportObj->SetStringField(TEXT("type"), Packet.Metadata.ViewportType);
+	Root->SetObjectField(TEXT("viewport"), ViewportObj);
 
-	return true;  // We'll respond asynchronously
+	// Selection
+	TArray<TSharedPtr<FJsonValue>> SelArr;
+	for (const FString& Name : Packet.Metadata.SelectedActors)
+	{
+		SelArr.Add(MakeShared<FJsonValueString>(Name));
+	}
+	Root->SetArrayField(TEXT("selection"), SelArr);
+
+	// Scene
+	TSharedRef<FJsonObject> SceneObj = MakeShared<FJsonObject>();
+	SceneObj->SetStringField(TEXT("map"), Packet.Metadata.MapName);
+	SceneObj->SetNumberField(TEXT("actor_count"), Packet.Metadata.ActorCount);
+	Root->SetObjectField(TEXT("scene"), SceneObj);
+
+	// Timing
+	TSharedRef<FJsonObject> TimingObj = MakeShared<FJsonObject>();
+	TimingObj->SetNumberField(TEXT("delta_time"), Packet.Metadata.DeltaTime);
+	TimingObj->SetNumberField(TEXT("fps"), Packet.Metadata.FPS);
+	Root->SetObjectField(TEXT("timing"), TimingObj);
+
+	FString JsonBody;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonBody);
+	FJsonSerializer::Serialize(Root, Writer);
+	return JsonBody;
 }
 
 void FPerceptionEndpoint::SendJsonResponse(const FHttpResultCallback& OnComplete,
                                             const FString& JsonBody, int32 StatusCode)
 {
 	auto Response = FHttpServerResponse::Create(JsonBody, TEXT("application/json"));
+	Response->Code = static_cast<EHttpServerResponseCodes>(StatusCode);
 	OnComplete(MoveTemp(Response));
 }

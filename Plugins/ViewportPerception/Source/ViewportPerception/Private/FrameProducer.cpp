@@ -57,6 +57,13 @@ void FFrameProducer::Stop()
 
 	bActive = false;
 	PixelBus = nullptr;
+
+	// Make sure no in-flight render-thread callback is mid-readback before we
+	// release the staging buffer.
+	FlushRenderingCommands();
+	Readback.Reset();
+	bReadbackPending = false;
+
 	UE_LOG(LogViewportPerception, Log, TEXT("FrameProducer stopped"));
 }
 
@@ -67,43 +74,69 @@ void FFrameProducer::SetThrottleInterval(double Seconds)
 
 void FFrameProducer::OnFrameBufferReady(SWindow& SlateWindow, const FTextureRHIRef& FrameBuffer)
 {
-	// This runs on the render thread -- must be fast when skipping
+	// Runs on the render thread. All readback state below is render-thread-only,
+	// so no synchronization is needed for it. We NEVER block the render thread:
+	// a copy is enqueued on one present and drained on a later one once the GPU
+	// has finished, instead of a synchronous ReadSurfaceData stall.
+	if (!PixelBus || !FrameBuffer.IsValid())
+	{
+		return;
+	}
 
-	// Throttle gate: skip if too soon since last capture
+	FRHICommandListImmediate& RHICmdList = FRHICommandListImmediate::Get();
+
+	// 1) Drain a previously-enqueued readback if the GPU has finished it.
+	if (bReadbackPending && Readback.IsValid() && Readback->IsReady())
+	{
+		int32 RowPitchInPixels = 0;
+		void* Mapped = Readback->Lock(RowPitchInPixels);
+		if (Mapped && PendingSize.X > 0 && PendingSize.Y > 0)
+		{
+			const int32 Pitch = (RowPitchInPixels > 0) ? RowPitchInPixels : PendingSize.X;
+			TArray<FColor> Pixels;
+			Pixels.SetNumUninitialized(PendingSize.X * PendingSize.Y);
+			const FColor* Src = static_cast<const FColor*>(Mapped);
+			for (int32 Y = 0; Y < PendingSize.Y; ++Y)
+			{
+				FMemory::Memcpy(
+					Pixels.GetData() + Y * PendingSize.X,
+					Src + Y * Pitch,
+					PendingSize.X * sizeof(FColor));
+			}
+			Readback->Unlock();
+			PixelBus->WriteFrame(MoveTemp(Pixels), PendingSize, PendingFrameNumber, PendingTimestamp);
+		}
+		else if (Mapped)
+		{
+			Readback->Unlock();
+		}
+		bReadbackPending = false;
+	}
+
+	// 2) Throttle gate: only enqueue a new capture every MinCaptureInterval.
 	const double Now = FPlatformTime::Seconds();
 	if ((Now - LastCaptureTime) < MinCaptureInterval)
 	{
 		return;
 	}
 
-	if (!PixelBus || !FrameBuffer.IsValid())
+	// 3) Enqueue a new async copy if one isn't already in flight.
+	if (!bReadbackPending)
 	{
-		return;
-	}
+		if (!Readback.IsValid())
+		{
+			Readback = MakeUnique<FRHIGPUTextureReadback>(TEXT("ViewportPerceptionReadback"));
+		}
 
-	LastCaptureTime = Now;
-	const int64 PrevFrame = FrameCounter.Load();
-	const int64 CurrentFrame = PrevFrame + 1;
-	FrameCounter.Store(CurrentFrame);
+		LastCaptureTime = Now;
+		const int64 CurrentFrame = FrameCounter.Load() + 1;
+		FrameCounter.Store(CurrentFrame);
 
-	// Read the backbuffer pixels
-	const FIntPoint Size = FrameBuffer->GetSizeXY();
-	TArray<FColor> Pixels;
+		PendingSize = FrameBuffer->GetSizeXY();
+		PendingFrameNumber = CurrentFrame;
+		PendingTimestamp = Now;
 
-	FReadSurfaceDataFlags ReadFlags(RCM_UNorm);
-	ReadFlags.SetLinearToGamma(false);
-
-	// ReadSurfaceData on the current RHI command list
-	FRHICommandListImmediate& RHICmdList = FRHICommandListImmediate::Get();
-	RHICmdList.ReadSurfaceData(
-		FrameBuffer,
-		FIntRect(0, 0, Size.X, Size.Y),
-		Pixels,
-		ReadFlags
-	);
-
-	if (Pixels.Num() > 0)
-	{
-		PixelBus->WriteFrame(MoveTemp(Pixels), Size, CurrentFrame, Now);
+		Readback->EnqueueCopy(RHICmdList, FrameBuffer);
+		bReadbackPending = true;
 	}
 }

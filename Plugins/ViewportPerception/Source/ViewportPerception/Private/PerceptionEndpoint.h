@@ -14,6 +14,7 @@
 #include "HttpServerModule.h"
 #include "IHttpRouter.h"
 #include "HttpRouteHandle.h"
+#include "PerceptionTypes.h"
 
 class UViewportPerceptionSubsystem;
 
@@ -38,8 +39,13 @@ private:
 	bool HandleStop(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
 	bool HandleSingle(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
 
-	/** Build a JSON response and send it. */
-	void SendJsonResponse(const FHttpResultCallback& OnComplete, const FString& JsonBody, int32 StatusCode = 200);
+	/** Serialize a perception packet to the full response JSON (image + camera +
+	 *  viewport + selection + scene + timing). Static — shared by /frame and /single. */
+	static FString BuildPacketJson(const FPerceptionPacket& Packet);
+
+	/** Build a JSON response and send it. Static + member-state-free, so it is safe
+	 *  to call from a deferred ticker callback after the endpoint may be gone. */
+	static void SendJsonResponse(const FHttpResultCallback& OnComplete, const FString& JsonBody, int32 StatusCode = 200);
 
 	UViewportPerceptionSubsystem* Subsystem = nullptr;
 

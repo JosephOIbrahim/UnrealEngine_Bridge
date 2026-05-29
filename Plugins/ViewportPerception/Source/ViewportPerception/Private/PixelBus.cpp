@@ -11,6 +11,8 @@ FPixelBus::FPixelBus()
 void FPixelBus::WriteFrame(TArray<FColor>&& Pixels, FIntPoint Size,
                            int64 FrameNumber, double Timestamp)
 {
+	FScopeLock Lock(&BusLock);
+
 	// Advance write index (wraps around NUM_SLOTS)
 	const int32 SlotIndex = WriteIndex.Load() % NUM_SLOTS;
 
@@ -32,6 +34,8 @@ void FPixelBus::WriteFrame(TArray<FColor>&& Pixels, FIntPoint Size,
 bool FPixelBus::ReadLatest(TArray<FColor>& OutPixels, FIntPoint& OutSize,
                            int64& OutFrameNumber, double& OutTimestamp) const
 {
+	FScopeLock Lock(&BusLock);
+
 	// Find the slot with the highest frame number that is ready
 	int64 BestFrame = 0;
 	int32 BestSlot = -1;
@@ -70,7 +74,7 @@ int64 FPixelBus::GetLatestFrameNumber() const
 
 void FPixelBus::AttachMetadata(const FPerceptionMetadata& Metadata)
 {
-	FScopeLock Lock(&MetadataLock);
+	FScopeLock Lock(&BusLock);
 
 	// Attach to the most recently written slot
 	int64 BestFrame = 0;
@@ -95,7 +99,7 @@ bool FPixelBus::ReadLatestWithMetadata(TArray<FColor>& OutPixels, FIntPoint& Out
                                        FPerceptionMetadata& OutMetadata,
                                        int64& OutFrameNumber, double& OutTimestamp) const
 {
-	FScopeLock Lock(&MetadataLock);
+	FScopeLock Lock(&BusLock);
 
 	int64 BestFrame = 0;
 	int32 BestSlot = -1;

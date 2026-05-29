@@ -6,6 +6,7 @@
 
 #include "CoreMinimal.h"
 #include "RHI.h"
+#include "RHIGPUReadback.h"
 
 class FPixelBus;
 
@@ -38,4 +39,13 @@ private:
 	double LastCaptureTime = 0.0;
 	TAtomic<int64> FrameCounter;
 	bool bActive = false;
+
+	// Asynchronous GPU->CPU readback (render thread only). We enqueue a copy on
+	// one present and drain the completed result on a later present, so the render
+	// thread never blocks on a synchronous ReadSurfaceData.
+	TUniquePtr<FRHIGPUTextureReadback> Readback;
+	bool bReadbackPending = false;
+	FIntPoint PendingSize = FIntPoint::ZeroValue;
+	int64 PendingFrameNumber = 0;
+	double PendingTimestamp = 0.0;
 };
