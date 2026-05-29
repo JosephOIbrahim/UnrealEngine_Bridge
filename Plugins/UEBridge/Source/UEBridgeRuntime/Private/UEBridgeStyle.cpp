@@ -5,6 +5,8 @@
 #include "UEBridgeStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Styling/SlateTypes.h"
+#include "Brushes/SlateImageBrush.h"
+#include "Interfaces/IPluginManager.h"
 
 TSharedPtr<FSlateStyleSet> FUEBridgeStyle::StyleInstance = nullptr;
 
@@ -106,6 +108,19 @@ TSharedRef<FSlateStyleSet> FUEBridgeStyle::Create()
 	Style->Set("Font.Caption",          FCoreStyle::GetDefaultFontStyle("Regular", 12));
 	Style->Set("Font.Small",            FCoreStyle::GetDefaultFontStyle("Regular", 11));
 	Style->Set("Font.Insight",          FCoreStyle::GetDefaultFontStyle("Regular", 13));
+
+	// -------------------------------------------------------------------------
+	// Brand icon — the plugin's Resources/Icon128.png, registered as Slate
+	// brushes so the recognizable mark can appear in the editor toolbar, the
+	// Tools menu, and the dockable panel tab (see UEBridgeEditor module).
+	// -------------------------------------------------------------------------
+	if (TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("UEBridge")))
+	{
+		Style->SetContentRoot(Plugin->GetBaseDir() / TEXT("Resources"));
+		const FString IconPath = Style->RootToContentDir(TEXT("Icon128"), TEXT(".png"));
+		Style->Set("UEBridge.Icon",       new FSlateImageBrush(IconPath, FVector2D(40.0, 40.0)));
+		Style->Set("UEBridge.Icon.Small", new FSlateImageBrush(IconPath, FVector2D(20.0, 20.0)));
+	}
 
 	return Style;
 }

@@ -45,6 +45,10 @@ public class UEBridgeRuntime : ModuleRules
         // HTTP for runtime Remote Control communication
         PrivateDependencyModuleNames.Add("HTTP");
 
+        // Projects — IPluginManager, to resolve the plugin's Resources/ for the
+        // brand icon brush registered in FUEBridgeStyle.
+        PrivateDependencyModuleNames.Add("Projects");
+
         // Version definition — single source of truth
         PublicDefinitions.Add("BRIDGE_VERSION=TEXT(\"2.1.0\")");
 
