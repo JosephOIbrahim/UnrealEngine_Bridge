@@ -2,18 +2,18 @@
 setlocal enabledelayedexpansion
 
 REM ============================================
-REM UnrealEngineBridge Build Script
+REM UnrealEngine_Bridge Build Script
 REM Builds the UE5.7 C++ project
 REM ============================================
 
 set "UE_ROOT=C:\Program Files\Epic Games\UE_5.7"
-set "PROJECT_PATH=%~dp0UnrealEngineBridge.uproject"
+set "PROJECT_PATH=%~dp0UnrealEngine_Bridge.uproject"
 set "UBT=%UE_ROOT%\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe"
 set "BUILD_BAT=%UE_ROOT%\Engine\Build\BatchFiles\Build.bat"
 
 echo.
 echo ============================================
-echo   UnrealEngineBridge Build Script
+echo   UnrealEngine_Bridge Build Script
 echo ============================================
 echo.
 echo Project: %PROJECT_PATH%
@@ -69,15 +69,15 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo.
 echo SUCCESS: Project files generated.
-echo You can now open UnrealEngineBridge.sln in Visual Studio.
+echo You can now open UnrealEngine_Bridge.sln in Visual Studio.
 pause
 exit /b 0
 
 :build
 echo.
-echo Building UnrealEngineBridgeEditor (Development, Win64)...
+echo Building UnrealEngine_BridgeEditor (Development, Win64)...
 echo.
-call "%BUILD_BAT%" UnrealEngineBridgeEditor Win64 Development "%PROJECT_PATH%" -waitmutex -progress
+call "%BUILD_BAT%" UnrealEngine_BridgeEditor Win64 Development "%PROJECT_PATH%" -waitmutex -progress
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ERROR: Build failed.
@@ -103,9 +103,9 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 echo.
-echo Step 2/2: Building UnrealEngineBridgeEditor...
+echo Step 2/2: Building UnrealEngine_BridgeEditor...
 echo.
-call "%BUILD_BAT%" UnrealEngineBridgeEditor Win64 Development "%PROJECT_PATH%" -waitmutex -progress
+call "%BUILD_BAT%" UnrealEngine_BridgeEditor Win64 Development "%PROJECT_PATH%" -waitmutex -progress
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ERROR: Build failed.
@@ -114,7 +114,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo.
 echo SUCCESS: Project generated and built.
-echo You can now open UnrealEngineBridge.uproject in UE5.
+echo You can now open UnrealEngine_Bridge.uproject in UE5.
 pause
 exit /b 0
 

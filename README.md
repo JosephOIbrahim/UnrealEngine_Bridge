@@ -351,4 +351,4 @@ ruff check ue_mcp/ remote_control/ tests/
 
 ## License
 
-Copyright 2026 Joseph Ibrahim. All rights reserved.
+Released under the [MIT License](LICENSE) — Copyright (c) 2026 Joseph Ibrahim.
