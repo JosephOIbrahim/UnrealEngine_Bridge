@@ -7,7 +7,7 @@
 	"Category": "Editor",
 	"CreatedBy": "UE-Bridge",
 	"CanContainContent": false,
-	"EnabledByDefault": true,
+	"EnabledByDefault": false,
 	"EditorCustomVirtualPath": "",
 	"SupportedTargetPlatforms": [ "Win64" ],
 	"Modules": [
