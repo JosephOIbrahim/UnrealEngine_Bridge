@@ -1,8 +1,14 @@
 # UnrealEngine Bridge
 
+[![Release](https://img.shields.io/github/v/release/JosephOIbrahim/UnrealEngine_Bridge?sort=semver)](https://github.com/JosephOIbrahim/UnrealEngine_Bridge/releases/latest)
+[![CI](https://github.com/JosephOIbrahim/UnrealEngine_Bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/JosephOIbrahim/UnrealEngine_Bridge/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Unreal Engine 5.7](https://img.shields.io/badge/Unreal%20Engine-5.7-0a0a14)](https://www.unrealengine.com/)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+
 **Give Claude Code full control of Unreal Engine 5.7.** Spawn actors, tweak materials, light scenes, reason about space, capture the viewport, keyframe animations — all through natural language via the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-56 MCP tools | 14 tool modules | 415 tests | Python 3.11+
+56 MCP tools | 14 tool modules | 415 tests | Python 3.11+ · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
 ---
 
@@ -31,13 +37,13 @@ graph LR
     D -- HTTP --> E
     C -. viewport capture .-> G
 
-    style A fill:#6C47FF,color:#fff
-    style B fill:#1a1a2e,color:#fff
-    style C fill:#1a1a2e,color:#fff
-    style D fill:#1a1a2e,color:#fff
-    style E fill:#0d47a1,color:#fff
-    style F fill:#0d47a1,color:#fff
-    style G fill:#0d47a1,color:#fff
+    style A fill:#5CFFDB,color:#05050D
+    style B fill:#5CFFDB,color:#05050D
+    style C fill:#12121F,color:#fff
+    style D fill:#12121F,color:#fff
+    style E fill:#FFCC33,color:#05050D
+    style F fill:#12121F,color:#fff
+    style G fill:#FFCC33,color:#05050D
 ```
 
 ---
@@ -246,11 +252,11 @@ graph TB
     Sub --> Ed
     VP -- "HTTP :30011" --> Tools
 
-    style MCP fill:#6C47FF,color:#fff
-    style Tools fill:#6C47FF,color:#fff
-    style RCAPI fill:#0d47a1,color:#fff
-    style Sub fill:#0d47a1,color:#fff
-    style VP fill:#0d47a1,color:#fff
+    style MCP fill:#5CFFDB,color:#05050D
+    style Tools fill:#5CFFDB,color:#05050D
+    style RCAPI fill:#FFCC33,color:#05050D
+    style Sub fill:#12121F,color:#fff
+    style VP fill:#FFCC33,color:#05050D
 ```
 
 ### Resilience
