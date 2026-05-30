@@ -1,8 +1,8 @@
 # UnrealEngine Bridge
 
-**Give Claude Code full control of Unreal Engine 5.7.** Spawn actors, tweak materials, capture the viewport, keyframe animations — all through natural language via the [Model Context Protocol](https://modelcontextprotocol.io/).
+**Give Claude Code full control of Unreal Engine 5.7.** Spawn actors, tweak materials, light scenes, reason about space, capture the viewport, keyframe animations — all through natural language via the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-51 MCP tools | 12 tool modules | 372 tests | Python 3.11+
+56 MCP tools | 14 tool modules | 415 tests | Python 3.11+
 
 ---
 
@@ -16,7 +16,7 @@ graph LR
 
     subgraph Python
         B[MCP Server<br/><i>FastMCP · stdio</i>]
-        B --> C[Tool Modules<br/><i>12 modules · 51 tools</i>]
+        B --> C[Tool Modules<br/><i>14 modules · 56 tools</i>]
         C --> D[Remote Control Bridge<br/><i>httpx · circuit breaker</i>]
     end
 
@@ -112,6 +112,14 @@ Claude will use `ue_spawn_actor`, `ue_create_material`, `ue_assign_material`, an
 | `ue_get_component_details` | Deep component info (mesh assets, materials, light properties) |
 | `ue_get_actor_hierarchy` | Recursive parent-child attachment tree |
 
+### Spatial Reasoning (4 tools)
+| Tool | Description |
+|---|---|
+| `ue_ground_trace` | Line-trace down at (x, y) to find the ground — hit point, normal, distance, actor |
+| `ue_snap_to_ground` | Drop an actor onto the surface beneath it, optionally tilting to the slope |
+| `ue_spatial_query` | Nearest-N, AABB overlap, combined-bounds footprint, or box-contents queries |
+| `ue_measure` | Straight-line distance between actors, or extent + footprint area of one |
+
 ### Materials (4 tools)
 | Tool | Description |
 |---|---|
@@ -169,6 +177,15 @@ Claude will use `ue_spawn_actor`, `ue_create_material`, `ue_assign_material`, an
 | `ue_create_niagara_system` | Spawn a Niagara particle system |
 | `ue_create_pcg_graph` | Create a PCG procedural generation volume |
 
+### Lighting & Atmosphere (5 tools)
+| Tool | Description |
+|---|---|
+| `ue_setup_sky_atmosphere` | Build/update the sky rig (sun, sky, fog, clouds, post) idempotently |
+| `ue_set_time_of_day` | Map hour 0–24 → sun elevation/azimuth/colour/intensity |
+| `ue_list_mood_presets` | List the built-in cinematic mood presets |
+| `ue_apply_mood_preset` | Apply a coordinated sun + fog + clouds + colour-grade package |
+| `ue_blend_mood_presets` | Interpolate between two presets (t in 0..1) and apply |
+
 ### Editor Utilities (5 tools)
 | Tool | Description |
 |---|---|
@@ -196,7 +213,7 @@ Claude will use `ue_spawn_actor`, `ue_create_material`, `ue_assign_material`, an
 graph TB
     subgraph "Python Layer"
         MCP["MCP Server<br/><code>ue_mcp/mcp_server.py</code>"]
-        Tools["Tool Modules (12)<br/><code>ue_mcp/tools/</code>"]
+        Tools["Tool Modules (14)<br/><code>ue_mcp/tools/</code>"]
         RC["Remote Control Bridge<br/><code>remote_control/</code>"]
         Val["Validation & Sandbox<br/><code>_validation.py</code>"]
         Met["Metrics & Circuit Breaker<br/><code>metrics.py</code>"]
@@ -266,10 +283,12 @@ UnrealEngine_Bridge/
 │   ├── mcp_server.py              # FastMCP entry point (stdio)
 │   ├── metrics.py                 # Telemetry + observability
 │   ├── logging.py                 # Structured JSON logging
-│   └── tools/                     # 12 tool modules (51 tools)
+│   └── tools/                     # 14 tool modules (56 tools)
 │       ├── actors.py              # Spawn, delete, list, transform
 │       ├── scene.py               # Query, details, hierarchy
+│       ├── spatial.py             # Ground trace, snap-to-ground, measure
 │       ├── materials.py           # Create, set params, assign
+│       ├── lighting.py            # Sky/atmosphere rig, time of day, mood presets
 │       ├── blueprints.py          # Create, compile, components
 │       ├── sequencer.py           # Animation / Level Sequence
 │       ├── perception.py          # Viewport capture + diff
@@ -309,7 +328,7 @@ UnrealEngine_Bridge/
 ├── bridge_orchestrator.py         # Game flow orchestration
 ├── remote_control_bridge.py       # Backward-compat shim → remote_control/
 ├── usd_bridge.py                  # Backward-compat shim → usd_bridge/
-├── tests/                         # 372 tests (pytest)
+├── tests/                         # 415 tests (pytest)
 ├── pyproject.toml                 # Build config, dependencies, tooling
 └── .github/workflows/ci.yml       # CI: Python 3.11/3.12, coverage, lint
 ```
