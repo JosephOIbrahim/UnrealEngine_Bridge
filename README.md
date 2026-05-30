@@ -273,6 +273,12 @@ All Python code executed in UE5 is validated through a multi-layer sandbox:
 - **Path validation**: Content path traversal (`..`) prevention on all inputs
 - **Console safety**: Blocked commands (`exit`, `quit`, `crash`) and newline injection prevention
 
+### Network surface & trust model
+
+The bridge talks to the editor over two **localhost** services: the Unreal Remote Control API (`:30010`) and ViewportPerception (`:30011`). They are designed for a **single trusted operator on a single machine** — the developer running Claude Code and the editor on the same workstation — and should not be exposed to untrusted networks. Viewport perception is **opt-in (disabled by default)**.
+
+See **[SECURITY.md](SECURITY.md)** for the full trust model, operator hardening guidance, and how to report a vulnerability.
+
 ---
 
 ## Project Structure

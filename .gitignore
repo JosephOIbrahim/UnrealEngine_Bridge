@@ -36,5 +36,6 @@ DashLibData/
 # Render-verification artifacts (large binaries)
 verify_render/
 
-# Sensitive: production-readiness report enumerates unpatched vulnerabilities — keep local
+# Sensitive: production-readiness report + triage enumerate unpatched vulnerabilities — keep local
 .planning/PRODUCTION_READINESS_REPORT.md
+.planning/READINESS_TRIAGE_2026-05-30.md
