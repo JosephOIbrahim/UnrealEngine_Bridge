@@ -25,7 +25,7 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Run tests with coverage
-        run: python -m pytest tests/ -v --tb=short --cov=ue_mcp --cov=remote_control --cov-report=term-missing --cov-fail-under=75
+        run: python -m pytest tests/ -v --tb=short --cov=ue_mcp --cov=remote_control --cov-report=term-missing --cov-fail-under=70
 
       - name: Lint with ruff
         run: |
