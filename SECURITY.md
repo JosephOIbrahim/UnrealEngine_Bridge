@@ -74,9 +74,12 @@ To stay within the supported trust model:
 - **Treat the project content directory and bridge files as trusted input.**
   The bridge reads and writes editor state on the local filesystem; only run it
   against projects and files you trust.
-- **Keep perception opt-in.** Viewport capture is off by default; enable it only
-  when you intend Claude to see your viewport, and disable it when you are done.
-  Understand what is being captured and where it goes before turning it on.
+- **Keep perception opt-in.** The ViewportPerception plugin ships **disabled by
+  default** (`EnabledByDefault=false`); viewport capture is off until you turn it
+  on. Before enabling it, keep `:30011` bound to loopback and behind your own
+  access control; enable it only when you intend Claude to see your viewport, and
+  disable it again when you are done. Understand what is being captured and where
+  it goes before turning it on.
 - **Keep secrets out of the repo and out of the editor session.** Do not commit
   API tokens or credentials to the repository or to bridge state files; provide
   them through environment variables or local, untracked configuration, and do
