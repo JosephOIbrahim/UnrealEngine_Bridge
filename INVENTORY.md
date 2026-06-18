@@ -6,7 +6,7 @@ MCP server bridging Claude Code to Unreal Engine 5 via Remote Control API.
 
 | Metric | Count |
 |--------|-------|
-| MCP Tools | 43 |
+| MCP Tools | 56 |
 | Tool Modules | 11 |
 | Tests | 222 |
 | Python source files | 27 |
@@ -21,7 +21,7 @@ MCP server bridging Claude Code to Unreal Engine 5 via Remote Control API.
 
 ---
 
-## Tools (43 total)
+## Tools (56 total)
 
 ### actors.py — Actor Manipulation (6 tools, 216 lines)
 
@@ -84,7 +84,7 @@ MCP server bridging Claude Code to Unreal Engine 5 via Remote Control API.
 | `ue_get_actor_components` | `actor_label` | `ue.execute_python()` |
 | `ue_spawn_blueprint` | `blueprint_path`, `x/y/z=0.0`, `rx/ry/rz=0.0`, `label=None` | `ue.execute_python()` |
 
-### perception.py — Viewport Capture (3 tools, 323 lines)
+### perception.py — Viewport Capture (4 tools, 323 lines)
 
 | Tool | Params | Dispatch |
 |------|--------|----------|
@@ -101,7 +101,7 @@ MCP server bridging Claude Code to Unreal Engine 5 via Remote Control API.
 | `ue_get_component_details` | `actor_label`, `component_name` | `ue.execute_python()` |
 | `ue_get_actor_hierarchy` | `actor_label` | `ue.execute_python()` |
 
-### materials.py — Material Editing (5 tools, 265 lines)
+### materials.py — Material Editing (4 tools, 265 lines)
 
 | Tool | Params | Dispatch |
 |------|--------|----------|
