@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "unreal": {
+      "command": "python",
+      "args": ["-m", "ue_mcp.mcp_server"],
+      "env": { "UE_MCP_PROFILE": "full" }
+    },
+    "unreal-epic": {
+      "type": "http",
+      "url": "http://127.0.0.1:8000/mcp"
+    }
+  }
+}
