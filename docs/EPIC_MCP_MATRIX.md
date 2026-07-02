@@ -43,6 +43,7 @@ Naming legend — Epic tools are cited by exact registered name, with these pref
 | Abbreviation | Full registered prefix |
 |---|---|
 | `ActorTools.*` | `editor_toolset.toolsets.actor.ActorTools.*` |
+| `PrimitiveTools.*` | `editor_toolset.toolsets.primitive.PrimitiveTools.*` |
 | `SceneTools.*` | `editor_toolset.toolsets.scene.SceneTools.*` |
 | `ObjectTools.*` | `editor_toolset.toolsets.object.ObjectTools.*` |
 | `AssetTools.*` | `editor_toolset.toolsets.asset.AssetTools.*` |
@@ -104,7 +105,7 @@ Naming legend — Epic tools are cited by exact registered name, with these pref
 | properties.py | `ue_set_property` | `ObjectTools.set_properties` (+ `ObjectTools.reset_properties`, which we lack) | FULL | RETIRE | — |
 | python_exec.py | `ue_execute_python` | **not equivalent**: `Programmatic.execute_tool_script` is a **sandboxed batch runner** — module allowlist `json/math/datetime/copy/re/time`, **no `unreal` import**, must define `run()->dict`, can only call `execute_tool(tool_name, json_input)` over registered tools (per `Programmatic.get_execution_environment`) | NONE | KEEP | Our arbitrary editor-Python with full `unreal` API access has no Epic counterpart. This is the escape hatch for everything Epic hasn't tooled. |
 | scene.py | `ue_get_actor_details` | `SceneTools.find_actors` + `ActorTools.get_actor_transform` + `ActorTools.get_components` + `ActorTools.get_tags` + `ObjectTools.get_properties` | FULL (composition) | RETIRE | ~4 serial calls vs 1, but complete. |
-| scene.py | `ue_query_scene` | `SceneTools.find_actors` (name substring, `actor_type`, tag, world-space AABB `bounds`, optional physics `collision_channels`) | PARTIAL | RETIRE | Our radius-proximity mode maps to an AABB `bounds` query (sphere-vs-box refinement is trivial client-side). Everything else is covered outright. |
+| scene.py | `ue_query_scene` | `SceneTools.find_actors` (name substring, `actor_type`, tag, world-space AABB `bounds`, optional physics `collision_channels`) | PARTIAL | RETIRE | Filtered listing is covered outright. Caveat: `find_actors` returns actor refs only — location-bearing results (incl. sphere refinement of the radius mode) cost O(N) `ActorTools.get_actor_transform` follow-ups under serial dispatch. Reopen if that composition proves too slow in practice. |
 | scene.py | `ue_get_component_details` | `ActorTools.get_components` + `ObjectTools.get_properties` (+ `StaticMeshTools.get_material_slots` where relevant) | FULL (composition) | RETIRE | — |
 | scene.py | `ue_get_actor_hierarchy` | partial: `SceneTools.find_actors` (`root` = subtree, flat), `ActorTools.get_parent_component`, `ActorTools.get_root_component`, `ActorTools.get_component_actor` | PARTIAL | KEEP-PARTIAL | Epic offers per-hop primitives, no one-shot recursive attachment tree; N-call reconstruction is expensive under serial game-thread + `call_tool` dispatch. Reopen if Epic ships a scene-outliner tree query (its `get_outliner_tree` is Sequencer-only). |
 | sequencer.py | `ue_create_level_sequence` | `SequencerTools.create_level_sequence` | FULL | RETIRE | — |
@@ -126,7 +127,7 @@ Grounded claims of absence, each from a full-text search over all 830 names + de
 - **Undo/redo/transactions**: absent.
 - **Sky/atmosphere/fog/cloud/sun/time-of-day**: absent.
 - **Level-actor duplication**: absent (`AssetTools.duplicate` is content-browser only).
-- **Snap-to-ground / surface alignment**: absent.
+- **Snap-to-ground / surface alignment**: no standalone tool for EXISTING actors, and no surface-normal output anywhere. (A spawn-time `snap_to_ground` argument does exist on `SceneTools.add_to_scene_from_class`/`add_to_scene_from_asset`.)
 - **Cloner/Effector**: absent.
 - **Continuous viewport capture / snapshot diff**: absent (single-shot `CaptureViewport`/`CaptureEditorImage`/`CaptureAssetImage` only).
 - **Arbitrary editor Python**: absent — `Programmatic.execute_tool_script` sandbox confirmed as described in the header.
