@@ -26,9 +26,9 @@ from mcp.server.fastmcp import FastMCP
 
 from remote_control_bridge import BASE_URL, AsyncUnrealRemoteControl
 from ue_mcp.__version__ import __version__
-from ue_mcp.logging import configure_logging
 from ue_mcp.metrics import metrics
 from ue_mcp.tools import register_all_tools
+from ue_mcp.ue_logging import configure_logging
 
 logger = configure_logging()
 
