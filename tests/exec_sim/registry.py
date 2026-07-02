@@ -79,8 +79,10 @@ _ENTRIES = [
     ),
     ToolEntry(
         "ue_set_transform", CODEGEN,
+        # Sentinel values must not be substrings of each other ("1.25" hides
+        # inside "811.25"), or a dropped kwarg can pass the sentinel gate.
         kwargs=dict(actor_path=SENTINEL_ACTOR_PATH, x=7317.25, y=811.25, z=97.25,
-                    rx=14.25, ry=28.25, rz=42.25, sx=1.25, sy=2.25, sz=3.25),
+                    rx=14.25, ry=28.25, rz=42.25, sx=51.5625, sy=62.8125, sz=73.1875),
         sentinel_checkable=("actor_path", "x", "y", "z", "rx", "ry", "rz", "sx", "sy", "sz"),
         notes="codegen via client; actor-resolver contract gated in test_honesty",
     ),
@@ -141,9 +143,10 @@ _ENTRIES = [
     # ------------------------------------------------------------ mograph.py
     ToolEntry(
         "ue_create_cloner", CODEGEN,
+        # x/y/z use collision-free fractions (3.25 hides inside spacing=433.25).
         kwargs=dict(layout="Circle", mesh_path=SENTINEL_MESH_PATH,
                     count_x=7317, count_y=6113, count_z=4231, spacing=433.25,
-                    x=1.25, y=2.25, z=3.25, label=SENTINEL_LABEL),
+                    x=151.5625, y=262.8125, z=373.1875, label=SENTINEL_LABEL),
         sentinel_checkable=("layout", "mesh_path", "count_x", "count_y", "count_z",
                             "spacing", "x", "y", "z", "label"),
         notes="sentinel gate is the arg-discard trap (layout/counts/spacing/mesh_path)",
