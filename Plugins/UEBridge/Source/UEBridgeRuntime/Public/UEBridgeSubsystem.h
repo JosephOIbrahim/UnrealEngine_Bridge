@@ -13,6 +13,11 @@
 #include "BridgeTypes.h"
 #include "UEBridgeSubsystem.generated.h"
 
+// Used by reference only in method signatures below; forward-declared so the
+// header is self-contained under non-unity / installed-plugin builds (a unity
+// build would otherwise pull FJsonObject in transitively).
+class FJsonObject;
+
 UCLASS()
 class UEBRIDGERUNTIME_API UUEBridgeSubsystem
     : public UGameInstanceSubsystem

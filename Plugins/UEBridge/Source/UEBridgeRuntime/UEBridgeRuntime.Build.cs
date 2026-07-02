@@ -11,17 +11,8 @@ public class UEBridgeRuntime : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        PublicIncludePaths.AddRange(new string[]
-        {
-            Path.Combine(ModuleDirectory, "Public"),
-            Path.Combine(ModuleDirectory, "Public", "UI")
-        });
-
-        PrivateIncludePaths.AddRange(new string[]
-        {
-            Path.Combine(ModuleDirectory, "Private"),
-            Path.Combine(ModuleDirectory, "Private", "UI")
-        });
+        PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Public"));
+        PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Private"));
 
         // Core runtime dependencies — ship in packaged builds
         PublicDependencyModuleNames.AddRange(new string[]
@@ -50,7 +41,7 @@ public class UEBridgeRuntime : ModuleRules
         PrivateDependencyModuleNames.Add("Projects");
 
         // Version definition — single source of truth
-        PublicDefinitions.Add("BRIDGE_VERSION=TEXT(\"2.1.0\")");
+        PublicDefinitions.Add("BRIDGE_VERSION=TEXT(\"0.2.0\")");
 
         // USD support flag: editor-only via pxr, runtime uses text-based USDA parser
         if (Target.bBuildEditor)

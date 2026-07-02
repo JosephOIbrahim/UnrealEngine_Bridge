@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ue-bridge"
-version = "2.1.0"
+dynamic = ["version"]
 description = "MCP server bridging Claude Code to Unreal Engine 5 via Remote Control API"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,6 +26,10 @@ usd = [
 
 [project.scripts]
 ue-mcp = "ue_mcp.mcp_server:main"
+
+[tool.hatch.version]
+# Single version source; the tag gate is `git tag vX.Y.Z` == this value.
+path = "ue_mcp/__version__.py"
 
 [tool.hatch.build.targets.wheel]
 # Flat layout: the distribution name (ue-bridge) has no matching directory, so the

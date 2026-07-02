@@ -7,8 +7,12 @@
 #include "CoreMinimal.h"
 #include "RHI.h"
 #include "RHIGPUReadback.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 class FPixelBus;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+class ISlateViewportProvider;
+#endif
 
 class FFrameProducer
 {
@@ -29,8 +33,15 @@ public:
 	bool IsActive() const { return bActive; }
 
 private:
-	/** Called on the render thread when the backbuffer is ready. */
-	void OnFrameBufferReady(SWindow& SlateWindow, const FTextureRHIRef& FrameBuffer);
+	/** Called on the render thread when the backbuffer is ready.
+	 *  5.8 changed OnBackBufferReadyToPresent's second param from the raw
+	 *  texture to an ISlateViewportProvider — both signatures are kept so the
+	 *  plugin compiles against 5.7 and 5.8 from the same source. */
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+	void OnFrameBufferReady(SWindow& SlateWindow, ISlateViewportProvider& ViewportProvider);
+#else
+	void OnFrameBufferReady(SWindow& SlateWindow, const FTextureRHIRef& FrameBufferRef);
+#endif
 
 	FDelegateHandle DelegateHandle;
 	FPixelBus* PixelBus = nullptr;
