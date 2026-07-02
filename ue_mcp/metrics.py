@@ -51,7 +51,7 @@ class Metrics:
                         "p95_ms": round(sorted_s[int(len(sorted_s) * 0.95)] * 1000, 1),
                     }
             return {
-                "uptime_s": round(uptime, 1),
+                "uptime_s": round(uptime, 3),
                 "counters": dict(self._counters),
                 "latencies": latency_stats,
             }

@@ -14,17 +14,11 @@ import atexit
 import glob
 import json
 import os
-import sys
 import tempfile
-
-# Ensure the ue-bridge root is importable (for remote_control_bridge)
-_parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _parent_dir not in sys.path:
-    sys.path.insert(0, _parent_dir)
 
 from mcp.server.fastmcp import FastMCP
 
-from remote_control_bridge import BASE_URL, AsyncUnrealRemoteControl
+from remote_control import BASE_URL, AsyncUnrealRemoteControl
 from ue_mcp.__version__ import __version__
 from ue_mcp.metrics import metrics
 from ue_mcp.tools import register_all_tools

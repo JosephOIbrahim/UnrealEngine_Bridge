@@ -51,30 +51,87 @@ def register(server: MCPServer, ue: UEBridge) -> None:
                 return make_error(err)
 
         label_str = escape_for_fstring(label or "ClaudeCloner")
+        safe_mesh = escape_for_fstring(mesh_path)
+        # ClonerEffector clones its ATTACHED child actors; layout/count/spacing
+        # live on the cloner component and its active layout object. Property
+        # names could not be verified against a live editor, so every write goes
+        # through _safe_set and is reported applied/skipped (lighting.py pattern)
+        # instead of silently pretending.
         code = f"""
-import unreal
+import unreal, json
 
 subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 
-# Spawn the Cloner actor
 cloner_class = unreal.find_class("ClonerActor") or unreal.find_class("ACEClonerActor")
 if cloner_class is None:
-    # Try loading from the plugin module
     cloner_class = unreal.load_class(None, "/Script/ClonerEffector.ClonerActor")
 
-if cloner_class:
+if cloner_class is None:
+    print("RESULT:" + json.dumps({{"error": "CLASS_NOT_FOUND - ClonerEffector plugin may not be loaded"}}))
+else:
     cloner = subsystem.spawn_actor_from_class(
         cloner_class,
         unreal.Vector({x}, {y}, {z}),
         unreal.Rotator(0, 0, 0)
     )
-    if cloner:
-        cloner.set_actor_label("{label_str}")
-        print("RESULT:CREATED " + cloner.get_path_name())
+    if cloner is None:
+        print("RESULT:" + json.dumps({{"error": "SPAWN_FAILED"}}))
     else:
-        print("RESULT:SPAWN_FAILED")
-else:
-    print("RESULT:CLASS_NOT_FOUND - ClonerEffector plugin may not be loaded")
+        cloner.set_actor_label("{label_str}")
+        applied, skipped = [], []
+
+        def _safe_set(obj, name, value):
+            try:
+                obj.set_editor_property(name, value)
+                applied.append(name)
+            except Exception as e:
+                skipped.append(name + ": " + str(e)[:80])
+
+        comp = None
+        comp_class = getattr(unreal, "CEClonerComponent", None)
+        if comp_class:
+            comp = cloner.get_component_by_class(comp_class)
+        if comp is None:
+            skipped.append("layout/count/spacing: CEClonerComponent not found on actor")
+        else:
+            _safe_set(comp, "layout_name", "{layout}")
+            layout_obj = None
+            try:
+                layout_obj = comp.get_editor_property("active_layout")
+            except Exception:
+                pass
+            target = layout_obj if layout_obj is not None else comp
+            _safe_set(target, "count_x", {count_x})
+            _safe_set(target, "count_y", {count_y})
+            _safe_set(target, "count_z", {count_z})
+            _safe_set(target, "spacing_x", {spacing})
+            _safe_set(target, "spacing_y", {spacing})
+            _safe_set(target, "spacing_z", {spacing})
+
+        mesh_attached = False
+        try:
+            mesh = unreal.EditorAssetLibrary.load_asset("{safe_mesh}")
+            if mesh:
+                child = subsystem.spawn_actor_from_class(
+                    unreal.StaticMeshActor, unreal.Vector({x}, {y}, {z}), unreal.Rotator(0, 0, 0))
+                if child:
+                    child.static_mesh_component.set_static_mesh(mesh)
+                    child.attach_to_actor(cloner, "", unreal.AttachmentRule.KEEP_RELATIVE,
+                                          unreal.AttachmentRule.KEEP_RELATIVE,
+                                          unreal.AttachmentRule.KEEP_RELATIVE, False)
+                    mesh_attached = True
+            else:
+                skipped.append("mesh: asset not found {safe_mesh}")
+        except Exception as e:
+            skipped.append("mesh: " + str(e)[:80])
+
+        print("RESULT:" + json.dumps({{
+            "created": cloner.get_path_name(),
+            "layout": "{layout}",
+            "applied": applied,
+            "skipped": skipped,
+            "mesh_attached": mesh_attached,
+        }}))
 """
         result = await ue.execute_python(code)
         return json.dumps(result, indent=2)

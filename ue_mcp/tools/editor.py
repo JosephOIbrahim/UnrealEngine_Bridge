@@ -153,16 +153,17 @@ import unreal, json
 if actor is None:
     print("RESULT:" + json.dumps({{"error": "Actor not found: {safe_label}"}}))
 else:
-    # Select the actor and focus
     subsystem.set_selected_level_actors([actor])
-    # Use editor utility to focus on selection
-    unreal.EditorLevelLibrary.set_selected_level_actors([actor])
-    # Trigger viewport focus
+    focused = False
     if hasattr(unreal, 'LevelEditorSubsystem'):
         le_sub = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
         if hasattr(le_sub, 'focus_on_selected_actors'):
             le_sub.focus_on_selected_actors()
-    print("RESULT:" + json.dumps({{"focused": "{safe_label}"}}))
+            focused = True
+    if focused:
+        print("RESULT:" + json.dumps({{"focused": "{safe_label}"}}))
+    else:
+        print("RESULT:" + json.dumps({{"error": "No viewport focus method available", "selected": "{safe_label}"}}))
 """
         result = await ue.execute_python(code)
         return json.dumps(result, indent=2)

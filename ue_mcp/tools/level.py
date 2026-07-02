@@ -60,7 +60,10 @@ import unreal, json
 
 try:
     success = unreal.EditorLevelLibrary.load_level("{safe_path}")
-    print("RESULT:" + json.dumps({{"loaded": True, "level": "{safe_path}"}}))
+    if success:
+        print("RESULT:" + json.dumps({{"loaded": True, "level": "{safe_path}"}}))
+    else:
+        print("RESULT:" + json.dumps({{"loaded": False, "error": "load_level returned False", "level": "{safe_path}"}}))
 except Exception as e:
     print("RESULT:" + json.dumps({{"error": str(e)}}))
 """

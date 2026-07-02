@@ -35,7 +35,7 @@ def register(server: MCPServer, ue: UEBridge) -> None:
             if err := sanitize_class_name(class_filter, "class_filter"):
                 return make_error(err)
 
-        result = await ue.find_assets(search_pattern, class_filter=class_filter)
+        result = await ue.find_assets(escape_for_fstring(search_pattern), class_filter=class_filter)
         return json.dumps(result, indent=2)
 
     @server.tool(
