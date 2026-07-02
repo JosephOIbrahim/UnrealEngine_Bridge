@@ -188,7 +188,7 @@ MCP server bridging Claude Code to Unreal Engine 5 via Remote Control API.
 UnrealEngine_Bridge/
 ├── ue_mcp/                      # MCP server package
 │   ├── __init__.py
-│   ├── __version__.py           # "2.1.0"
+│   ├── __version__.py           # "0.2.0"
 │   ├── mcp_server.py            # FastMCP server + entry point
 │   ├── metrics.py               # Counters + latency tracking
 │   └── tools/                   # 11 tool modules

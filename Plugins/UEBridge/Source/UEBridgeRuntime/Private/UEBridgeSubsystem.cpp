@@ -864,7 +864,7 @@ FUEBridgeProfile UUEBridgeSubsystem::ParseCognitiveProfile(const FString& UsdPat
 
     BridgeLog(FString::Printf(TEXT("Parsing cognitive profile from: %s"), *UsdPath));
     Profile.UsdExportPath = UsdPath;
-    Profile.GeneratorVersion = TEXT("2.1.0");
+    Profile.GeneratorVersion = TEXT("0.2.0");
 
     // Parse checksum
     {
