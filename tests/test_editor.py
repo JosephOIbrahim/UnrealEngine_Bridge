@@ -79,43 +79,6 @@ except Exception as e:
         ast.parse(code)
 
 
-class TestUndoRedoCodeGen:
-    """Generated Python for undo/redo parses cleanly."""
-
-    def test_undo_code_parses(self):
-        code = """
-import unreal, json
-
-try:
-    result = unreal.EditorLevelLibrary.editor_undo() if hasattr(unreal.EditorLevelLibrary, 'editor_undo') else unreal.SystemLibrary.transaction_undo()
-    print("RESULT:" + json.dumps({"undone": True}))
-except Exception as e:
-    try:
-        import unreal
-        unreal.EditorLevelLibrary.editor_undo()
-        print("RESULT:" + json.dumps({"undone": True}))
-    except Exception as e2:
-        print("RESULT:" + json.dumps({"error": str(e2)}))
-"""
-        ast.parse(code)
-
-    def test_redo_code_parses(self):
-        code = """
-import unreal, json
-
-try:
-    result = unreal.EditorLevelLibrary.editor_redo() if hasattr(unreal.EditorLevelLibrary, 'editor_redo') else unreal.SystemLibrary.transaction_redo()
-    print("RESULT:" + json.dumps({"redone": True}))
-except Exception as e:
-    try:
-        unreal.EditorLevelLibrary.editor_redo()
-        print("RESULT:" + json.dumps({"redone": True}))
-    except Exception as e2:
-        print("RESULT:" + json.dumps({"error": str(e2)}))
-"""
-        ast.parse(code)
-
-
 class TestFocusActorCodeGen:
     """Generated Python for ue_focus_actor parses cleanly."""
 
@@ -209,36 +172,22 @@ class TestConsoleCommandAsync:
 
 class TestUndoAsync:
     @pytest.mark.asyncio
-    async def test_happy_path(self, server, mock_ue):
+    async def test_reports_not_implemented_without_editor_roundtrip(self, server, mock_ue):
         fn = _call(server, "ue_undo")
         result = await fn()
         data = json.loads(result)
-        assert "error" not in data
-        mock_ue.execute_python.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_code_contains_undo(self, server, mock_ue):
-        fn = _call(server, "ue_undo")
-        await fn()
-        code = mock_ue.execute_python.call_args[0][0]
-        assert "undo" in code.lower()
+        assert "not implemented" in data.get("error", "").lower()
+        mock_ue.execute_python.assert_not_awaited()
 
 
 class TestRedoAsync:
     @pytest.mark.asyncio
-    async def test_happy_path(self, server, mock_ue):
+    async def test_reports_not_implemented_without_editor_roundtrip(self, server, mock_ue):
         fn = _call(server, "ue_redo")
         result = await fn()
         data = json.loads(result)
-        assert "error" not in data
-        mock_ue.execute_python.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_code_contains_redo(self, server, mock_ue):
-        fn = _call(server, "ue_redo")
-        await fn()
-        code = mock_ue.execute_python.call_args[0][0]
-        assert "redo" in code.lower()
+        assert "not implemented" in data.get("error", "").lower()
+        mock_ue.execute_python.assert_not_awaited()
 
 
 class TestFocusActorAsync:

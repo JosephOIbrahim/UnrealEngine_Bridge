@@ -5,6 +5,14 @@ No I/O -- pure string construction.
 """
 
 
+def _escape_for_fstring(value: str) -> str:
+    """Escape backslashes and double quotes for embedding in generated code.
+
+    Escaping lives HERE for find_assets so every caller (MCP tool, sync
+    client) is covered; other templates still rely on caller-side escaping.
+    """
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
 
 class _CodeGen:
     """Generates UE5 Python scripts. No I/O -- pure string construction."""
@@ -36,10 +44,12 @@ print("RESULT:" + result)
 
     @staticmethod
     def delete_actor_code(actor_path: str) -> str:
+        # Level actors are subobjects (…:PersistentLevel.Name) — the Content-Browser
+        # asset API returns None for them; load_object resolves both forms.
         return f"""
 import unreal
 subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-actor = unreal.EditorAssetLibrary.load_asset("{actor_path}")
+actor = unreal.load_object(None, "{actor_path}")
 if actor:
     subsystem.destroy_actor(actor)
     print("RESULT:DELETED")
@@ -77,7 +87,7 @@ print("RESULT:" + json.dumps(results))
         scale: tuple[float, float, float] | None,
     ) -> str:
         lines = ["import unreal"]
-        lines.append(f'actor = unreal.EditorAssetLibrary.load_asset("{actor_path}")')
+        lines.append(f'actor = unreal.load_object(None, "{actor_path}")')
         lines.append("if actor:")
         if location:
             lines.append(f"    actor.set_actor_location(unreal.Vector({location[0]}, {location[1]}, {location[2]}), False, False)")
@@ -92,6 +102,7 @@ print("RESULT:" + json.dumps(results))
 
     @staticmethod
     def find_assets_code(search_pattern: str, class_filter: str | None = None) -> str:
+        search_pattern = _escape_for_fstring(search_pattern)
         return f"""
 import unreal, json
 registry = unreal.AssetRegistryHelpers.get_asset_registry()

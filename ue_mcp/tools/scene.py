@@ -73,7 +73,7 @@ else:
         "location": {{"x": loc.x, "y": loc.y, "z": loc.z}},
         "rotation": {{"pitch": rot.pitch, "yaw": rot.yaw, "roll": rot.roll}},
         "scale": {{"x": scale.x, "y": scale.y, "z": scale.z}},
-        "visible": actor.is_hidden() is False,
+        "visible": actor.hidden is False,
         "components": comp_list,
         "tags": tags,
         "parent": parent_label,

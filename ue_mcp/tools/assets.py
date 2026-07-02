@@ -35,6 +35,8 @@ def register(server: MCPServer, ue: UEBridge) -> None:
             if err := sanitize_class_name(class_filter, "class_filter"):
                 return make_error(err)
 
+        # Escaping happens inside _CodeGen.find_assets_code (the chokepoint),
+        # covering the sync client too — do not escape here or it doubles.
         result = await ue.find_assets(search_pattern, class_filter=class_filter)
         return json.dumps(result, indent=2)
 

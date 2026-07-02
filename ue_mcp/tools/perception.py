@@ -9,6 +9,7 @@ the current game state (question, sync_status) for full situational awareness.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -24,6 +25,10 @@ logger = logging.getLogger("ue5-mcp.tools.perception")
 
 PERCEPTION_URL = os.environ.get("UE_PERCEPTION_URL", "http://localhost:30011")
 PERCEPTION_TIMEOUT = 5.0
+# take_high_res_screenshot completes on a later frame — the fallback polls for
+# the file across separate editor round-trips (see _fallback_capture).
+FALLBACK_POLL_ATTEMPTS = 10
+FALLBACK_POLL_INTERVAL_S = 0.5
 BRIDGE_DIR = Path.home() / ".translators"
 
 
@@ -92,67 +97,57 @@ async def _perception_request(method: str, path: str, body: dict | None = None) 
 
 
 async def _fallback_capture(ue, width: int, height: int, format: str) -> dict:
-    """Fallback: capture via SceneCapture2D + Python in the editor.
+    """Fallback: capture via editor screenshot + Python in the editor.
 
-    This re-renders the scene (performance cost) but works without the C++ plugin.
+    take_high_res_screenshot completes on a LATER frame, so the trigger and the
+    file read must be separate editor executions — one combined exec always saw
+    a missing file and (before the fix) reported success with an empty image.
     """
-    code = f"""
-import unreal, json, base64, os, tempfile
+    trigger_code = f"""
+import unreal, json, tempfile, os
 
-# Get viewport info
 world = unreal.EditorLevelLibrary.get_editor_world()
 subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 actors = subsystem.get_all_level_actors()
 level_name = world.get_name() if world else "Unknown"
 
-# Get active viewport camera
 ecs = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
 loc, rot = unreal.Vector(), unreal.Rotator()
 try:
-    vp = unreal.EditorLevelLibrary
-    loc = ecs.get_level_viewport_camera_info()[0] if hasattr(ecs, 'get_level_viewport_camera_info') else unreal.Vector()
-    rot = ecs.get_level_viewport_camera_info()[1] if hasattr(ecs, 'get_level_viewport_camera_info') else unreal.Rotator()
+    if hasattr(ecs, 'get_level_viewport_camera_info'):
+        loc, rot = ecs.get_level_viewport_camera_info()
 except Exception:
     pass
 
-# Selected actors
 selected = []
-sel = unreal.EditorUtilityLibrary.get_selected_assets() if hasattr(unreal, 'EditorUtilityLibrary') else []
 try:
-    sel_actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_selected_level_actors()
-    selected = [a.get_actor_label() for a in sel_actors]
+    selected = [a.get_actor_label() for a in subsystem.get_selected_level_actors()]
 except Exception:
     pass
 
-# Capture via screenshot
 tmp_dir = tempfile.gettempdir().replace("\\\\", "/")
 out_path = tmp_dir + "/ue_perception_capture.{format}"
 
-# Use high-res screenshot
-success = False
+# A stranded file from a previous capture (timeout/read-failure) would be
+# returned as THIS capture's frame — remove it before triggering.
 try:
-    unreal.AutomationLibrary.take_high_res_screenshot({width}, {height}, out_path)
-    success = True
+    if os.path.exists(out_path):
+        os.remove(out_path)
 except Exception:
     pass
 
-if not success:
-    # Fallback: use viewport screenshot command
+trigger = "none"
+try:
+    unreal.AutomationLibrary.take_high_res_screenshot({width}, {height}, out_path)
+    trigger = "automation"
+except Exception:
     try:
-        cmd = f"HighResShot {width}x{height}"
-        unreal.SystemLibrary.execute_console_command(world, cmd)
+        unreal.SystemLibrary.execute_console_command(world, "HighResShot {width}x{height}")
+        trigger = "console"
     except Exception:
         pass
 
-# Read and encode the image if it exists
-image_b64 = ""
-if os.path.exists(out_path):
-    with open(out_path, "rb") as f:
-        image_b64 = base64.b64encode(f.read()).decode("ascii")
-    os.remove(out_path)
-
-result = {{
-    "image": image_b64,
+print("RESULT:" + json.dumps({{
     "width": {width},
     "height": {height},
     "format": "{format}",
@@ -176,11 +171,58 @@ result = {{
         "delta_time": 0,
         "fps": 0
     }},
-    "fallback": True
-}}
-print("RESULT:" + json.dumps(result))
+    "fallback": True,
+    "trigger": trigger,
+    "out_path": out_path
+}}))
 """
-    return await ue.execute_python(code)
+    triggered = await ue.execute_python(trigger_code)
+    meta = triggered.get("result")
+    if triggered.get("error") or not isinstance(meta, dict):
+        return triggered
+
+    out_path = meta.pop("out_path", "")
+    meta["image"] = ""
+
+    if meta.get("trigger") != "automation" or not out_path:
+        # The console-command route writes to the editor's own screenshot dir —
+        # we cannot poll for it, so report metadata-only honestly.
+        meta["capture_status"] = "untracked_trigger" if meta.get("trigger") == "console" else "trigger_failed"
+        return {"output": "", "error": None, "result": meta}
+
+    poll_code = (
+        "import os, json\n"
+        f'print("RESULT:" + json.dumps({{"exists": os.path.exists("{out_path}")}}))'
+    )
+    found = False
+    for _ in range(FALLBACK_POLL_ATTEMPTS):
+        await asyncio.sleep(FALLBACK_POLL_INTERVAL_S)
+        chk = await ue.execute_python(poll_code)
+        chk_result = chk.get("result")
+        if isinstance(chk_result, dict) and chk_result.get("exists"):
+            found = True
+            break
+
+    if not found:
+        meta["capture_status"] = "timeout"
+        meta["image_pending_path"] = out_path
+        return {"output": "", "error": None, "result": meta}
+
+    read_code = f"""
+import json, base64, os
+with open("{out_path}", "rb") as f:
+    image_b64 = base64.b64encode(f.read()).decode("ascii")
+os.remove("{out_path}")
+print("RESULT:" + json.dumps({{"image": image_b64}}))
+"""
+    read = await ue.execute_python(read_code)
+    read_result = read.get("result")
+    if isinstance(read_result, dict) and read_result.get("image"):
+        meta["image"] = read_result["image"]
+        meta["capture_status"] = "ok"
+    else:
+        meta["capture_status"] = "read_failed"
+    return {"output": "", "error": None, "result": meta}
 
 
 def _compute_scene_diff(snap1: dict, snap2: dict) -> dict:

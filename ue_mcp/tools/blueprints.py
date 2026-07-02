@@ -205,7 +205,7 @@ else:
                 val = asset
         try:
             comp.set_editor_property("{safe_prop}", val)
-            print("RESULT:" + json.dumps({{"set": true, "component": "{safe_cc}", "property": "{safe_prop}"}}))
+            print("RESULT:" + json.dumps({{"set": True, "component": "{safe_cc}", "property": "{safe_prop}"}}))
         except Exception as e:
             print("RESULT:" + json.dumps({{"error": str(e)}}))
 """
@@ -373,7 +373,9 @@ else:
         label_line = ""
         if label:
             safe_lbl = escape_for_fstring(label)
-            label_line = f'\n    actor.set_actor_label("{safe_lbl}")'
+            # This template's `if actor:` is nested one level deep — the label
+            # statement must sit at 8 spaces, unlike codegen.spawn_actor_code.
+            label_line = f'\n        actor.set_actor_label("{safe_lbl}")'
         code = f"""
 import unreal, json
 

@@ -60,9 +60,17 @@ except Exception as e:
 
         return json.dumps(result, indent=2)
 
+    # The UE Python API exposes no editor-transaction undo/redo route (verified
+    # against 5.7; Epic's own 5.8 MCP surface ships none either — see
+    # docs/EPIC_MCP_MATRIX.md). These previously probed nonexistent APIs and
+    # errored every call; now they say so up front without an editor round-trip.
     @server.tool(
         name="ue_undo",
-        description="Undo the last editor action. Equivalent to Ctrl+Z.",
+        description=(
+            "Undo the last editor action. NOT IMPLEMENTED: no scriptable "
+            "editor-transaction route exists in the UE Python API — returns an "
+            "explanatory error. Use Ctrl+Z in the editor."
+        ),
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -70,34 +78,20 @@ except Exception as e:
         },
     )
     async def undo() -> str:
-        """Undo the last editor transaction."""
-        code = """
-import unreal, json
-
-success = False
-error_msg = "No undo method available"
-# editor_undo lives on EditorLevelLibrary; transaction_undo lives on SystemLibrary.
-for cls, method_name in [(unreal.EditorLevelLibrary, "editor_undo"), (unreal.SystemLibrary, "transaction_undo")]:
-    fn = getattr(cls, method_name, None)
-    if fn is not None:
-        try:
-            fn()
-            success = True
-            break
-        except Exception as e:
-            error_msg = str(e)
-
-if success:
-    print("RESULT:" + json.dumps({"undone": True}))
-else:
-    print("RESULT:" + json.dumps({"error": error_msg}))
-"""
-        result = await ue.execute_python(code)
-        return json.dumps(result, indent=2)
+        """Honest not-implemented: no verified editor-transaction API exists."""
+        return make_error(
+            "not implemented: the UE Python API exposes no editor-transaction "
+            "undo route. Use Ctrl+Z in the editor. Tracked for a verified "
+            "console-exec implementation."
+        )
 
     @server.tool(
         name="ue_redo",
-        description="Redo the last undone editor action. Equivalent to Ctrl+Y.",
+        description=(
+            "Redo the last undone editor action. NOT IMPLEMENTED: no scriptable "
+            "editor-transaction route exists in the UE Python API — returns an "
+            "explanatory error. Use Ctrl+Y in the editor."
+        ),
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -105,30 +99,12 @@ else:
         },
     )
     async def redo() -> str:
-        """Redo the last undone editor transaction."""
-        code = """
-import unreal, json
-
-success = False
-error_msg = "No redo method available"
-# editor_redo lives on EditorLevelLibrary; transaction_redo lives on SystemLibrary.
-for cls, method_name in [(unreal.EditorLevelLibrary, "editor_redo"), (unreal.SystemLibrary, "transaction_redo")]:
-    fn = getattr(cls, method_name, None)
-    if fn is not None:
-        try:
-            fn()
-            success = True
-            break
-        except Exception as e:
-            error_msg = str(e)
-
-if success:
-    print("RESULT:" + json.dumps({"redone": True}))
-else:
-    print("RESULT:" + json.dumps({"error": error_msg}))
-"""
-        result = await ue.execute_python(code)
-        return json.dumps(result, indent=2)
+        """Honest not-implemented: no verified editor-transaction API exists."""
+        return make_error(
+            "not implemented: the UE Python API exposes no editor-transaction "
+            "redo route. Use Ctrl+Y in the editor. Tracked for a verified "
+            "console-exec implementation."
+        )
 
     @server.tool(
         name="ue_focus_actor",
@@ -153,16 +129,26 @@ import unreal, json
 if actor is None:
     print("RESULT:" + json.dumps({{"error": "Actor not found: {safe_label}"}}))
 else:
-    # Select the actor and focus
     subsystem.set_selected_level_actors([actor])
-    # Use editor utility to focus on selection
-    unreal.EditorLevelLibrary.set_selected_level_actors([actor])
-    # Trigger viewport focus
+    focused_via = None
     if hasattr(unreal, 'LevelEditorSubsystem'):
         le_sub = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
         if hasattr(le_sub, 'focus_on_selected_actors'):
             le_sub.focus_on_selected_actors()
-    print("RESULT:" + json.dumps({{"focused": "{safe_label}"}}))
+            focused_via = "level_editor_subsystem"
+    if focused_via is None:
+        # 5.7's LevelEditorSubsystem exposes no focus UFUNCTION; the editor
+        # console command aligns the active viewport to the selection instead.
+        try:
+            world = unreal.EditorLevelLibrary.get_editor_world()
+            unreal.SystemLibrary.execute_console_command(world, "CAMERA ALIGN ACTIVEVIEWPORT")
+            focused_via = "camera_align_console"
+        except Exception:
+            pass
+    if focused_via:
+        print("RESULT:" + json.dumps({{"focused": "{safe_label}", "via": focused_via}}))
+    else:
+        print("RESULT:" + json.dumps({{"error": "No viewport focus method available", "selected": "{safe_label}"}}))
 """
         result = await ue.execute_python(code)
         return json.dumps(result, indent=2)
