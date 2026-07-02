@@ -1,4 +1,4 @@
-# UnrealEngine_Bridge v2.1.0 — Inventory
+# UnrealEngine_Bridge v0.2.0 — Inventory
 
 MCP server bridging Claude Code to Unreal Engine 5 via Remote Control API.
 
@@ -6,11 +6,10 @@ MCP server bridging Claude Code to Unreal Engine 5 via Remote Control API.
 
 | Metric | Count |
 |--------|-------|
-| MCP Tools | 56 |
-| Tool Modules | 11 |
-| Tests | 222 |
-| Python source files | 27 |
-| Total lines (Python) | ~8,000 |
+| MCP Tools | 58 (56 registry + 2 server) |
+| Mounted by default | 20 (`core` profile; `UE_MCP_PROFILE=full` remounts the commodity tier) |
+| Tool Modules | 14 |
+| Tests | 580 |
 
 ## Dependencies
 

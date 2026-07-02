@@ -7,6 +7,9 @@
 #include "RenderingThread.h"
 #include "Framework/Application/SlateApplication.h"
 #include "RHISurfaceDataConversion.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+#include "Slate/SlateViewportProvider.h"
+#endif
 
 FFrameProducer::FFrameProducer()
 	: FrameCounter(0)
@@ -72,13 +75,20 @@ void FFrameProducer::SetThrottleInterval(double Seconds)
 	MinCaptureInterval = FMath::Max(Seconds, 0.01);  // Cap at 100fps
 }
 
-void FFrameProducer::OnFrameBufferReady(SWindow& SlateWindow, const FTextureRHIRef& FrameBuffer)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+void FFrameProducer::OnFrameBufferReady(SWindow& SlateWindow, ISlateViewportProvider& ViewportProvider)
 {
+	FRHITexture* FrameBuffer = ViewportProvider.GetBackBufferResource();
+#else
+void FFrameProducer::OnFrameBufferReady(SWindow& SlateWindow, const FTextureRHIRef& FrameBufferRef)
+{
+	FRHITexture* FrameBuffer = FrameBufferRef.GetReference();
+#endif
 	// Runs on the render thread. All readback state below is render-thread-only,
 	// so no synchronization is needed for it. We NEVER block the render thread:
 	// a copy is enqueued on one present and drained on a later one once the GPU
 	// has finished, instead of a synchronous ReadSurfaceData stall.
-	if (!PixelBus || !FrameBuffer.IsValid())
+	if (!PixelBus || !FrameBuffer)
 	{
 		return;
 	}

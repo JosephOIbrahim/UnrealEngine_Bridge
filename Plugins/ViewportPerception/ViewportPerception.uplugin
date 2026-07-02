@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "2.1.0",
+	"VersionName": "0.2.0",
 	"EngineVersion": "5.7.0",
 	"FriendlyName": "Viewport Perception",
 	"Description": "AI visual awareness for UE5 — captures the editor viewport and serves perception packets (frame + metadata) to the MCP bridge.",

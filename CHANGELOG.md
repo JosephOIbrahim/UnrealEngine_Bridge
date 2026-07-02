@@ -4,6 +4,62 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-07-02 — the Epic MCP era
+
+> **Version renumbering:** the public line continues from v0.1.1. An internal
+> 2.x numbering existed in-repo but was never released; it was retired in this
+> release. `pyproject` now reads the single version source
+> (`ue_mcp/__version__.py`) via hatchling, and tags must match it.
+
+UE 5.8 ships Epic's official **Unreal MCP** (830 tools across 52 toolsets with
+`AllToolsets`). This release repositions the bridge around what Epic does NOT
+ship, with every decision grounded in a live probe of the real surface.
+
+### Changed — the retirement flip
+- **Tiered tool registry** at the `register_all_tools()` seam. Default profile
+  is `core`: **20 tools mounted** (the differentiated layer + `ue_status`/
+  `ue_health_check`). `UE_MCP_PROFILE=full` remounts the 36 Epic-covered
+  commodity tools; `all` adds the two honest not-implemented slots.
+- `ue_health_check` now reports the active profile, mount counts, and Epic
+  MCP (`:8000`) reachability.
+- `ue_undo`/`ue_redo` return an explicit not-implemented error (no editor
+  round-trip): no scriptable editor-transaction route exists in the UE Python
+  API, and they previously probed nonexistent APIs on every call.
+
+### Added
+- **`docs/EPIC_MCP_MATRIX.md`** — the retirement contract-of-record: verdicts
+  for all 58 tools against the probed Epic surface, plus raw captures
+  (`docs/epic_mcp/`) and a repeatable prober (`scripts/probe_epic_mcp.py`).
+- **Exec-simulating test harness** (`tests/exec_sim/`): a strict fake `unreal`
+  module, per-tool sentinel registry, compile/exec/sentinel gates, and
+  scripted-failure honesty contracts. Proven red on the pre-fix tree — every
+  failure mapped 1:1 to a known bug (see `tests/exec_sim/README.md`).
+  **580 tests total** (was 415).
+- `tests/test_registry_tiers.py` pins the matrix arithmetic and profile
+  semantics; tier/tool drift fails CI in both directions.
+- Two-server `.mcp.json` (this bridge over stdio + Epic's server on `:8000`);
+  `ModelContextProtocol` + `AllToolsets` staged `Optional: true` in the
+  `.uproject` (no-ops on 5.7, self-enables on 5.8).
+
+### Fixed
+- **All 11 confirmed bugs** from the 2026-06-11 hand-verified review: the
+  level-actor resolver (asset-API misuse in delete/transform), `true`→`True`
+  NameError, spawn-blueprint label indent, `load_level` false success,
+  `focus_actor` unconditional success, phantom `is_hidden()`, unescaped
+  `find_assets` patterns, the cloner arg-discard, the viewport-fallback race,
+  material-parameter API-family mixing, and the wheel-killing shim import.
+- Adversarial-verification findings fixed pre-merge: a stale-frame regression
+  in the perception fallback, wrong ClonerEffector class names for 5.7 (all
+  cloner writes are now read-back-verified), a working `CAMERA ALIGN` focus
+  route, and `find_assets` escaping moved into the codegen chokepoint.
+- `metrics` uptime rounding (coarse-clock test flake).
+
+### Removed
+- **The legacy Translators questionnaire runtime**: the game-flow state
+  machine entry points, trivia UI, Blueprint relay component, and the
+  repo-root runner. The `usd_bridge/` package is parked in-repo, out of the
+  ship path.
+
 ## [0.1.0] - 2026-05-30
 
 First tagged release. Demo-ready on a maintainer's machine; see **Status** below for what stands between this and a distributable plugin.
