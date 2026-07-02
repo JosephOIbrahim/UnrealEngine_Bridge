@@ -60,9 +60,17 @@ except Exception as e:
 
         return json.dumps(result, indent=2)
 
+    # The UE Python API exposes no editor-transaction undo/redo route (verified
+    # against 5.7; Epic's own 5.8 MCP surface ships none either — see
+    # docs/EPIC_MCP_MATRIX.md). These previously probed nonexistent APIs and
+    # errored every call; now they say so up front without an editor round-trip.
     @server.tool(
         name="ue_undo",
-        description="Undo the last editor action. Equivalent to Ctrl+Z.",
+        description=(
+            "Undo the last editor action. NOT IMPLEMENTED: no scriptable "
+            "editor-transaction route exists in the UE Python API — returns an "
+            "explanatory error. Use Ctrl+Z in the editor."
+        ),
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -70,34 +78,20 @@ except Exception as e:
         },
     )
     async def undo() -> str:
-        """Undo the last editor transaction."""
-        code = """
-import unreal, json
-
-success = False
-error_msg = "No undo method available"
-# editor_undo lives on EditorLevelLibrary; transaction_undo lives on SystemLibrary.
-for cls, method_name in [(unreal.EditorLevelLibrary, "editor_undo"), (unreal.SystemLibrary, "transaction_undo")]:
-    fn = getattr(cls, method_name, None)
-    if fn is not None:
-        try:
-            fn()
-            success = True
-            break
-        except Exception as e:
-            error_msg = str(e)
-
-if success:
-    print("RESULT:" + json.dumps({"undone": True}))
-else:
-    print("RESULT:" + json.dumps({"error": error_msg}))
-"""
-        result = await ue.execute_python(code)
-        return json.dumps(result, indent=2)
+        """Honest not-implemented: no verified editor-transaction API exists."""
+        return make_error(
+            "not implemented: the UE Python API exposes no editor-transaction "
+            "undo route. Use Ctrl+Z in the editor. Tracked for a verified "
+            "console-exec implementation."
+        )
 
     @server.tool(
         name="ue_redo",
-        description="Redo the last undone editor action. Equivalent to Ctrl+Y.",
+        description=(
+            "Redo the last undone editor action. NOT IMPLEMENTED: no scriptable "
+            "editor-transaction route exists in the UE Python API — returns an "
+            "explanatory error. Use Ctrl+Y in the editor."
+        ),
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -105,30 +99,12 @@ else:
         },
     )
     async def redo() -> str:
-        """Redo the last undone editor transaction."""
-        code = """
-import unreal, json
-
-success = False
-error_msg = "No redo method available"
-# editor_redo lives on EditorLevelLibrary; transaction_redo lives on SystemLibrary.
-for cls, method_name in [(unreal.EditorLevelLibrary, "editor_redo"), (unreal.SystemLibrary, "transaction_redo")]:
-    fn = getattr(cls, method_name, None)
-    if fn is not None:
-        try:
-            fn()
-            success = True
-            break
-        except Exception as e:
-            error_msg = str(e)
-
-if success:
-    print("RESULT:" + json.dumps({"redone": True}))
-else:
-    print("RESULT:" + json.dumps({"error": error_msg}))
-"""
-        result = await ue.execute_python(code)
-        return json.dumps(result, indent=2)
+        """Honest not-implemented: no verified editor-transaction API exists."""
+        return make_error(
+            "not implemented: the UE Python API exposes no editor-transaction "
+            "redo route. Use Ctrl+Y in the editor. Tracked for a verified "
+            "console-exec implementation."
+        )
 
     @server.tool(
         name="ue_focus_actor",

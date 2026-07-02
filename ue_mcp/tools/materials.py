@@ -163,53 +163,53 @@ else:
             return make_error(err)
 
         safe_path = escape_for_fstring(material_path)
+        # Two incompatible API families: get_*_parameter_names wants the base
+        # Material; get_material_instance_* wants the instance. Branch on which
+        # we were given, and key with str(name) — unreal.Name keys break json.dumps.
         code = f"""
 import unreal, json
 
 asset = unreal.EditorAssetLibrary.load_asset("{safe_path}")
 if asset is None:
     print("RESULT:" + json.dumps({{"error": "Material not found: {safe_path}"}}))
+elif not hasattr(unreal, 'MaterialEditingLibrary'):
+    print("RESULT:" + json.dumps({{"error": "MaterialEditingLibrary unavailable"}}))
 else:
-    params = {{}}
+    lib = unreal.MaterialEditingLibrary
+    is_instance = hasattr(unreal, 'MaterialInstanceConstant') and isinstance(asset, unreal.MaterialInstanceConstant)
+    base = asset.get_base_material() if is_instance else asset
+    if base is None:
+        print("RESULT:" + json.dumps({{"error": "Material instance has no base material: {safe_path}"}}))
+    else:
+        params = {{}}
 
-    # Scalar parameters
-    if hasattr(unreal, 'MaterialEditingLibrary'):
-        lib = unreal.MaterialEditingLibrary
-
-        try:
-            scalar_infos = lib.get_scalar_parameter_names(asset) if hasattr(lib, 'get_scalar_parameter_names') else []
-            for name in scalar_infos:
+        def _collect(names_fn, inst_fn, default_fn, kind, convert):
+            try:
+                names = names_fn(base)
+            except Exception:
+                return
+            for name in names:
+                key = str(name)
                 try:
-                    val = lib.get_material_instance_scalar_parameter_value(asset, name)
-                    params[name] = {{"type": "scalar", "value": val}}
+                    val = inst_fn(asset, name) if is_instance else default_fn(base, name)
+                    params[key] = {{"type": kind, "value": convert(val)}}
                 except Exception:
-                    params[name] = {{"type": "scalar", "value": None}}
-        except Exception:
-            pass
+                    params[key] = {{"type": kind, "value": None}}
 
-        try:
-            vector_infos = lib.get_vector_parameter_names(asset) if hasattr(lib, 'get_vector_parameter_names') else []
-            for name in vector_infos:
-                try:
-                    val = lib.get_material_instance_vector_parameter_value(asset, name)
-                    params[name] = {{"type": "vector", "value": {{"r": val.r, "g": val.g, "b": val.b, "a": val.a}}}}
-                except Exception:
-                    params[name] = {{"type": "vector", "value": None}}
-        except Exception:
-            pass
+        _collect(lib.get_scalar_parameter_names,
+                 lib.get_material_instance_scalar_parameter_value,
+                 lib.get_material_default_scalar_parameter_value,
+                 "scalar", lambda v: v)
+        _collect(lib.get_vector_parameter_names,
+                 lib.get_material_instance_vector_parameter_value,
+                 lib.get_material_default_vector_parameter_value,
+                 "vector", lambda v: {{"r": v.r, "g": v.g, "b": v.b, "a": v.a}} if v is not None else None)
+        _collect(lib.get_texture_parameter_names,
+                 lib.get_material_instance_texture_parameter_value,
+                 lib.get_material_default_texture_parameter_value,
+                 "texture", lambda v: v.get_path_name() if v else None)
 
-        try:
-            texture_infos = lib.get_texture_parameter_names(asset) if hasattr(lib, 'get_texture_parameter_names') else []
-            for name in texture_infos:
-                try:
-                    val = lib.get_material_instance_texture_parameter_value(asset, name)
-                    params[name] = {{"type": "texture", "value": val.get_path_name() if val else None}}
-                except Exception:
-                    params[name] = {{"type": "texture", "value": None}}
-        except Exception:
-            pass
-
-    print("RESULT:" + json.dumps({{"material": "{safe_path}", "parameters": params}}))
+        print("RESULT:" + json.dumps({{"material": "{safe_path}", "is_instance": is_instance, "parameters": params}}))
 """
         result = await ue.execute_python(code)
         return json.dumps(result, indent=2)
