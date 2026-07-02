@@ -130,14 +130,23 @@ if actor is None:
     print("RESULT:" + json.dumps({{"error": "Actor not found: {safe_label}"}}))
 else:
     subsystem.set_selected_level_actors([actor])
-    focused = False
+    focused_via = None
     if hasattr(unreal, 'LevelEditorSubsystem'):
         le_sub = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
         if hasattr(le_sub, 'focus_on_selected_actors'):
             le_sub.focus_on_selected_actors()
-            focused = True
-    if focused:
-        print("RESULT:" + json.dumps({{"focused": "{safe_label}"}}))
+            focused_via = "level_editor_subsystem"
+    if focused_via is None:
+        # 5.7's LevelEditorSubsystem exposes no focus UFUNCTION; the editor
+        # console command aligns the active viewport to the selection instead.
+        try:
+            world = unreal.EditorLevelLibrary.get_editor_world()
+            unreal.SystemLibrary.execute_console_command(world, "CAMERA ALIGN ACTIVEVIEWPORT")
+            focused_via = "camera_align_console"
+        except Exception:
+            pass
+    if focused_via:
+        print("RESULT:" + json.dumps({{"focused": "{safe_label}", "via": focused_via}}))
     else:
         print("RESULT:" + json.dumps({{"error": "No viewport focus method available", "selected": "{safe_label}"}}))
 """

@@ -52,13 +52,20 @@ def test_load_level_failure_is_not_reported_as_loaded(toolbox):
 # --------------------------------------------------------------------------
 
 
-def test_focus_actor_does_not_claim_focus_without_a_focus_api(toolbox):
+def test_focus_actor_claims_focus_only_with_an_executed_route(toolbox):
+    """Without LevelEditorSubsystem (the 5.7 reality), focus must go through the
+    CAMERA ALIGN console route and SAY SO — a focus claim must always carry the
+    route that actually executed."""
     code = _single_code(toolbox, "ue_focus_actor", actor_label=SENTINEL_LABEL)
     stub = make_unreal_stub(level_editor_subsystem=False)  # no LevelEditorSubsystem at all
-    result = parse_result(exec_generated(code, stub, name="<ue_focus_actor:no-api>"))["result"]
-    assert not (isinstance(result, dict) and result.get("focused")), (
-        f"no viewport-focus API exists in this world, yet the code claimed focus: {result!r}"
-    )
+    result = parse_result(exec_generated(code, stub, name="<ue_focus_actor:no-subsystem>"))["result"]
+    assert isinstance(result, dict), f"expected dict RESULT, got {result!r}"
+    if result.get("focused"):
+        assert result.get("via") == "camera_align_console", (
+            f"focus claimed without naming the executed route: {result!r}"
+        )
+    else:
+        assert result.get("error"), f"neither an honest focus nor an honest error: {result!r}"
 
 
 # --------------------------------------------------------------------------
@@ -257,10 +264,49 @@ def test_viewport_fallback_does_not_claim_success_with_empty_image(monkeypatch):
         "fallback regressed to a single editor execution — the screenshot file "
         "can never exist in the same exec that triggered it"
     )
+    assert result_is_honest_miss(final)
+
+
+def result_is_honest_miss(final: dict) -> bool:
     result = final.get("result")
-    assert isinstance(result, dict), f"expected dict result, got {final!r}"
-    assert result.get("image") == "", "no screenshot existed; image must be empty"
-    assert result.get("capture_status") in {"timeout", "trigger_failed"}, (
-        "empty image must be flagged via capture_status, got "
-        f"{result.get('capture_status')!r} in {({k: v for k, v in result.items() if k != 'image'})!r}"
+    return (
+        isinstance(result, dict)
+        and result.get("image") == ""
+        and result.get("capture_status") in {"timeout", "trigger_failed"}
     )
+
+
+def test_viewport_fallback_does_not_return_a_stale_frame_as_ok(monkeypatch):
+    """A stranded screenshot from a PREVIOUS capture (timeout/read-failure) must
+    not be returned as this capture's frame — the trigger pass removes it before
+    triggering. (Empirically reproduced regression from the verify wave.)"""
+    from ue_mcp.tools import perception
+
+    monkeypatch.setattr(perception, "FALLBACK_POLL_ATTEMPTS", 3)
+    monkeypatch.setattr(perception, "FALLBACK_POLL_INTERVAL_S", 0.0)
+
+    out_path = os.path.join(tempfile.gettempdir(), "ue_perception_capture.jpeg")
+    with open(out_path, "wb") as f:
+        f.write(b"STALE-FRAME-FROM-PREVIOUS-SESSION")
+    try:
+        stub = make_unreal_stub(screenshot_writes_file=False)  # this capture never lands
+
+        class EditorSim:
+            def __init__(self):
+                self.scripts: list[str] = []
+
+            async def execute_python(self, code: str) -> dict:
+                self.scripts.append(code)
+                return parse_result(exec_generated(code, stub, name=f"<stale:{len(self.scripts)}>"))
+
+        final = asyncio.run(perception._fallback_capture(EditorSim(), 320, 200, "jpeg"))
+        result = final.get("result")
+        assert isinstance(result, dict), f"expected dict result, got {final!r}"
+        assert result.get("capture_status") != "ok", (
+            f"a stale pre-existing file was returned as this capture's frame: "
+            f"{({k: v for k, v in result.items() if k != 'image'})!r}"
+        )
+        assert "STALE" not in (result.get("image") or ""), "stale bytes leaked into the payload"
+    finally:
+        if os.path.exists(out_path):
+            os.remove(out_path)

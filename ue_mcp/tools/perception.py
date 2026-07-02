@@ -104,7 +104,7 @@ async def _fallback_capture(ue, width: int, height: int, format: str) -> dict:
     a missing file and (before the fix) reported success with an empty image.
     """
     trigger_code = f"""
-import unreal, json, tempfile
+import unreal, json, tempfile, os
 
 world = unreal.EditorLevelLibrary.get_editor_world()
 subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
@@ -127,6 +127,14 @@ except Exception:
 
 tmp_dir = tempfile.gettempdir().replace("\\\\", "/")
 out_path = tmp_dir + "/ue_perception_capture.{format}"
+
+# A stranded file from a previous capture (timeout/read-failure) would be
+# returned as THIS capture's frame — remove it before triggering.
+try:
+    if os.path.exists(out_path):
+        os.remove(out_path)
+except Exception:
+    pass
 
 trigger = "none"
 try:

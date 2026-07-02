@@ -5,6 +5,14 @@ No I/O -- pure string construction.
 """
 
 
+def _escape_for_fstring(value: str) -> str:
+    """Escape backslashes and double quotes for embedding in generated code.
+
+    Escaping lives HERE for find_assets so every caller (MCP tool, sync
+    client) is covered; other templates still rely on caller-side escaping.
+    """
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
 
 class _CodeGen:
     """Generates UE5 Python scripts. No I/O -- pure string construction."""
@@ -94,6 +102,7 @@ print("RESULT:" + json.dumps(results))
 
     @staticmethod
     def find_assets_code(search_pattern: str, class_filter: str | None = None) -> str:
+        search_pattern = _escape_for_fstring(search_pattern)
         return f"""
 import unreal, json
 registry = unreal.AssetRegistryHelpers.get_asset_registry()
