@@ -16,6 +16,7 @@ import json
 import os
 import tempfile
 
+import httpx
 from mcp.server.fastmcp import FastMCP
 
 from remote_control import BASE_URL, AsyncUnrealRemoteControl
@@ -30,8 +31,18 @@ logger = configure_logging()
 server = FastMCP("unreal-engine")
 ue = AsyncUnrealRemoteControl()
 
-# Register all tool modules
-register_all_tools(server, ue)
+# Epic's official Unreal MCP (UE 5.8+) — probed for the health report only.
+EPIC_MCP_URL = os.environ.get("UE_EPIC_MCP_URL", "http://127.0.0.1:8000/mcp")
+
+# Register tool modules, filtered by UE_MCP_PROFILE (default "core" since the
+# Epic-MCP retirement flip — see docs/EPIC_MCP_MATRIX.md).
+registry = register_all_tools(server, ue)
+if registry.profile_warning:
+    logger.warning(registry.profile_warning)
+logger.info(
+    "tool profile %r: %d mounted, %d unmounted",
+    registry.profile, len(registry.registered), len(registry.skipped),
+)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -120,7 +131,17 @@ async def health_check() -> str:
 
     snap = metrics.snapshot()
 
-    return json.dumps({
+    epic_reachable = False
+    try:
+        async with httpx.AsyncClient(timeout=1.5) as client:
+            await client.get(EPIC_MCP_URL)
+            epic_reachable = True  # any HTTP response proves the server is up
+    except Exception:
+        # Diagnostics must never raise — e.g. httpx.InvalidURL from a
+        # misconfigured UE_EPIC_MCP_URL is not an HTTPError subclass.
+        pass
+
+    report = {
         "version": __version__,
         "connected": connected,
         "base_url": BASE_URL,
@@ -128,7 +149,16 @@ async def health_check() -> str:
         "uptime_s": snap["uptime_s"],
         "counters": snap["counters"],
         "latencies": snap["latencies"],
-    }, indent=2)
+        "tool_profile": registry.profile,
+        "tools_mounted": len(registry.registered),
+        "tools_unmounted": len(registry.skipped),
+        "epic_mcp": {"url": EPIC_MCP_URL, "reachable": epic_reachable},
+    }
+    if registry.unclassified:
+        report["unclassified_tools"] = registry.unclassified
+    if registry.profile_warning:
+        report["profile_warning"] = registry.profile_warning
+    return json.dumps(report, indent=2)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
