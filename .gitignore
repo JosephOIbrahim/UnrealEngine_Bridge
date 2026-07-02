@@ -44,3 +44,11 @@ verify_render/
 files.zip
 cozy.spec.yaml
 .planning/fieldhouse/
+
+# ANVIL autonomous-build harness + local review notes - keep local (public repo)
+.anvil/
+ANVIL_CROSS_REFERENCE.md
+ANVIL_runbook.md
+CLAUDE-FABLE-5.md
+.planning/CODEBASE_REVIEW_*.md
+.coverage
