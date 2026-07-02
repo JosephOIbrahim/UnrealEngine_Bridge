@@ -197,7 +197,9 @@ async def run(read_only: bool) -> int:
     s = Smoke()
     ue = AsyncUnrealRemoteControl()
     server = FastMCP("uebridge-smoke")
-    register_all_tools(server, ue)
+    # The smoke deliberately exercises legacy-tier tools too — mount everything
+    # regardless of the default profile flip.
+    register_all_tools(server, ue, profile="all")
 
     def tool(name):
         return server._tool_manager._tools[name].fn

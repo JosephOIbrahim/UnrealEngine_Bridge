@@ -71,7 +71,9 @@ class Toolbox:
     def __init__(self):
         self.server = RecordingServer()
         self.ue = CaptureUE()
-        register_all_tools(self.server, self.ue)
+        # The harness gates every tool's codegen regardless of what the
+        # default profile mounts — always register the full surface.
+        register_all_tools(self.server, self.ue, profile="all")
         self._code_cache: dict[str, list[str]] = {}
 
     @property

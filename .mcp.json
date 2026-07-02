@@ -2,8 +2,7 @@
   "mcpServers": {
     "unreal": {
       "command": "python",
-      "args": ["-m", "ue_mcp.mcp_server"],
-      "env": { "UE_MCP_PROFILE": "full" }
+      "args": ["-m", "ue_mcp.mcp_server"]
     },
     "unreal-epic": {
       "type": "http",

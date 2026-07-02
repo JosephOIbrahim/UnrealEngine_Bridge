@@ -8,7 +8,9 @@
 
 **Give Claude Code full control of Unreal Engine 5.7.** Spawn actors, tweak materials, light scenes, reason about space, capture the viewport, keyframe animations — all through natural language via the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-56 MCP tools | 14 tool modules | 415 tests | Python 3.11+ · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+58 MCP tools (20 mounted by default · commodity tier via `UE_MCP_PROFILE=full`) | 14 tool modules | 570+ tests | Python 3.11+ · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+
+> **Epic MCP era:** UE 5.8 ships an official [Unreal MCP](docs/EPIC_MCP_MATRIX.md) covering the commodity control plane (830 tools with AllToolsets). This bridge now mounts its **differentiated core** by default — arbitrary editor Python, console exec, lighting moods, ClonerEffector mograph, continuous perception + scene diffing, normal-aware spatial reasoning, resilience — and keeps the 36 Epic-covered tools available behind `UE_MCP_PROFILE=full`. Dispositions: [EPIC_MCP_MATRIX.md](docs/EPIC_MCP_MATRIX.md).
 
 ---
 
