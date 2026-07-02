@@ -139,6 +139,16 @@
 		{
 			"Name": "MLAdapter",
 			"Enabled": true
+		},
+		{
+			"Name": "ModelContextProtocol",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "AllToolsets",
+			"Enabled": true,
+			"Optional": true
 		}
 	],
 	"TargetPlatforms": [

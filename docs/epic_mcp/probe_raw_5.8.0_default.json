@@ -1,0 +1,123 @@
+{
+  "url": "http://127.0.0.1:8000/mcp",
+  "steps": {
+    "tools_list": "ok",
+    "list_toolsets": "ok"
+  },
+  "server_info": {
+    "name": "",
+    "title": "",
+    "version": "",
+    "websiteUrl": null,
+    "icons": null
+  },
+  "protocol_version": "2025-11-25",
+  "capabilities": {
+    "experimental": null,
+    "logging": null,
+    "prompts": null,
+    "resources": {
+      "subscribe": null,
+      "listChanged": null
+    },
+    "tools": {
+      "listChanged": true
+    },
+    "completions": null,
+    "tasks": null
+  },
+  "tools_list": [
+    {
+      "name": "list_toolsets",
+      "title": null,
+      "description": "List all available toolsets with names and descriptions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": null,
+      "icons": null,
+      "annotations": null,
+      "meta": null,
+      "execution": null
+    },
+    {
+      "name": "describe_toolset",
+      "title": null,
+      "description": "Get detailed information about a toolset including all tool names, descriptions, and input schemas.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "toolset_name": {
+            "type": "string",
+            "description": "Name of the toolset to describe. Use list_toolsets to see available names."
+          }
+        },
+        "required": [
+          "toolset_name"
+        ]
+      },
+      "outputSchema": null,
+      "icons": null,
+      "annotations": null,
+      "meta": null,
+      "execution": null
+    },
+    {
+      "name": "call_tool",
+      "title": null,
+      "description": "Call a tool by name. Provide toolset_name to call a toolset tool, or omit it to call a top-level MCP tool. Use list_toolsets and describe_toolset to discover available tools and their input schemas.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "toolset_name": {
+            "type": "string",
+            "description": "Optional. Name of the toolset containing the tool. Omit to call a top-level MCP tool. Use list_toolsets to discover toolset names."
+          },
+          "tool_name": {
+            "type": "string",
+            "description": "Name of the tool to call, without toolset prefix. Use describe_toolset to discover tool names and input schemas."
+          },
+          "arguments": {
+            "type": "object",
+            "description": "Arguments to pass to the tool. Must match the tool's input schema. Defaults to an empty object."
+          }
+        },
+        "required": [
+          "tool_name"
+        ]
+      },
+      "outputSchema": null,
+      "icons": null,
+      "annotations": null,
+      "meta": null,
+      "execution": null
+    }
+  ],
+  "list_toolsets_raw": "- ToolsetRegistry.AgentSkillToolset: Provides tools for listing, reading, and creating/updating skills.\n",
+  "toolset_names_source": "fallback-docs",
+  "toolset_names": [
+    "ActorTools",
+    "SceneTools",
+    "MaterialInstanceTools",
+    "ObjectTools"
+  ],
+  "describe_toolset": {
+    "ActorTools": {
+      "arg_key": "toolset_name",
+      "error": "Toolset 'ActorTools' not found. Available toolsets: ToolsetRegistry.AgentSkillToolset"
+    },
+    "SceneTools": {
+      "arg_key": "toolset_name",
+      "error": "Toolset 'SceneTools' not found. Available toolsets: ToolsetRegistry.AgentSkillToolset"
+    },
+    "MaterialInstanceTools": {
+      "arg_key": "toolset_name",
+      "error": "Toolset 'MaterialInstanceTools' not found. Available toolsets: ToolsetRegistry.AgentSkillToolset"
+    },
+    "ObjectTools": {
+      "arg_key": "toolset_name",
+      "error": "Toolset 'ObjectTools' not found. Available toolsets: ToolsetRegistry.AgentSkillToolset"
+    }
+  }
+}
