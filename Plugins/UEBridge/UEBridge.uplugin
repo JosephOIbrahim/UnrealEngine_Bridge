@@ -2,10 +2,10 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "0.2.0",
-	"EngineVersion": "5.7.0",
-	"FriendlyName": "UE Bridge",
-	"Description": "Agentic AI bridge for Unreal Engine. Provides MCP tool integration, file-based bridge protocol with USD transport, behavioral signal collection, and Remote Control API access for Claude Code.",
-	"Category": "Gameplay",
+	"EngineVersion": "5.8.0",
+	"FriendlyName": "UE Bridge — AI Editor Control",
+	"Description": "Give Claude Code and other MCP clients editor-side control of Unreal Engine: an in-editor status panel, a directory-watch bridge, and Remote Control API access. Pairs with the UnrealEngine Bridge MCP server for AI-driven scene building, lighting, spatial reasoning, and viewport perception.",
+	"Category": "Code Plugins",
 	"CreatedBy": "Joseph Ibrahim",
 	"CreatedByURL": "https://github.com/JosephOIbrahim",
 	"DocsURL": "https://github.com/JosephOIbrahim/UnrealEngine_Bridge#readme",
@@ -14,18 +14,21 @@
 	"CanContainContent": true,
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
+	"Installed": false,
 	"EnabledByDefault": false,
 	"SupportedTargetPlatforms": ["Win64"],
 	"Modules": [
 		{
 			"Name": "UEBridgeRuntime",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": ["Win64"]
 		},
 		{
 			"Name": "UEBridgeEditor",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": ["Win64"]
 		}
 	],
 	"Plugins": [

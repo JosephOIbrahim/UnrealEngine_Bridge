@@ -60,6 +60,19 @@ ship, with every decision grounded in a live probe of the real surface.
   repo-root runner. The `usd_bridge/` package is parked in-repo, out of the
   ship path.
 
+### Engine & packaging (UE 5.8)
+- **Retargeted to UE 5.8** (`EngineAssociation` 5.8; both plugins
+  `EngineVersion` 5.8.0). The `ViewportPerception` `FrameProducer` was ported
+  for 5.8's changed `OnBackBufferReadyToPresent` signature (`FTextureRHIRef`
+  → `ISlateViewportProvider&`) behind a dual-version `#if`, so it still
+  compiles against 5.7. Verified: the editor target builds clean on 5.8.
+- **Marketplace-ready plugins**: branded 128×128 icons, storefront-grade
+  `.uplugin` metadata, explicit `Category` specifiers on every
+  Blueprint-exposed property (required for engine-module distribution), and a
+  clean `RunUAT BuildPlugin -installed` package. Draft storefront copy in
+  `docs/FAB_LISTING.md`. The plugins can now be installed engine-wide and
+  picked from Edit → Plugins in any 5.8 project.
+
 ## [0.1.0] - 2026-05-30
 
 First tagged release. Demo-ready on a maintainer's machine; see **Status** below for what stands between this and a distributable plugin.

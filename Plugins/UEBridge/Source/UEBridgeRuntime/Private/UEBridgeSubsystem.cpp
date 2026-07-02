@@ -14,6 +14,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Internationalization/Regex.h"
 #include "Engine/Engine.h"
+#include "Misc/EngineVersion.h"
 
 
 // === LIFECYCLE ===
@@ -147,7 +148,7 @@ void UUEBridgeSubsystem::SendAcknowledge()
 
         Content = UpdateUsdaVariant(Content, TEXT("message_type"), TEXT("ack"));
         Content = UpdateUsdaAttribute(Content, TEXT("Ack"), TEXT("ready"), TEXT("true"), false);
-        Content = UpdateUsdaAttribute(Content, TEXT("Ack"), TEXT("ue_version"), FString(ENGINE_VERSION_STRING), true);
+        Content = UpdateUsdaAttribute(Content, TEXT("Ack"), TEXT("ue_version"), FEngineVersion::Current().ToString(), true);
         Content = UpdateUsdaAttribute(Content, TEXT("Ack"), TEXT("project"), TEXT("UnrealEngineBridge"), true);
         Content = UpdateUsdaAttribute(Content, TEXT("Ack"), TEXT("timestamp"), Timestamp, true);
 
@@ -167,7 +168,7 @@ void UUEBridgeSubsystem::SendAcknowledge()
 
     TSharedPtr<FJsonObject> AckObj = MakeShared<FJsonObject>();
     AckObj->SetBoolField(TEXT("ready"), true);
-    AckObj->SetStringField(TEXT("ue_version"), FString(ENGINE_VERSION_STRING));
+    AckObj->SetStringField(TEXT("ue_version"), FEngineVersion::Current().ToString());
     AckObj->SetStringField(TEXT("project"), TEXT("UnrealEngineBridge"));
     JsonObj->SetObjectField(TEXT("ack"), AckObj);
 

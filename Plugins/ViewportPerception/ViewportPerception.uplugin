@@ -2,20 +2,27 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "0.2.0",
-	"EngineVersion": "5.7.0",
-	"FriendlyName": "Viewport Perception",
-	"Description": "AI visual awareness for UE5 — captures the editor viewport and serves perception packets (frame + metadata) to the MCP bridge.",
-	"Category": "Editor",
+	"EngineVersion": "5.8.0",
+	"FriendlyName": "Viewport Perception — AI Visual Awareness",
+	"Description": "Gives AI assistants eyes inside the Unreal editor. Captures the level viewport on the render thread via async GPU readback and serves perception packets (encoded frame + camera, selection, and scene metadata) over a localhost HTTP endpoint for the UnrealEngine Bridge MCP server.",
+	"Category": "Code Plugins",
 	"CreatedBy": "Joseph Ibrahim",
+	"CreatedByURL": "https://github.com/JosephOIbrahim",
+	"DocsURL": "https://github.com/JosephOIbrahim/UnrealEngine_Bridge#readme",
+	"MarketplaceURL": "",
+	"SupportURL": "https://github.com/JosephOIbrahim/UnrealEngine_Bridge/issues",
 	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
 	"EnabledByDefault": false,
-	"EditorCustomVirtualPath": "",
-	"SupportedTargetPlatforms": [ "Win64" ],
+	"SupportedTargetPlatforms": ["Win64"],
 	"Modules": [
 		{
 			"Name": "ViewportPerception",
 			"Type": "EditorNoCommandlet",
-			"LoadingPhase": "PostEngineInit"
+			"LoadingPhase": "PostEngineInit",
+			"WhitelistPlatforms": ["Win64"]
 		}
 	],
 	"Plugins": [

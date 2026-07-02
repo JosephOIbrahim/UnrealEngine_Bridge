@@ -3,7 +3,7 @@
 [![Release](https://img.shields.io/github/v/release/JosephOIbrahim/UnrealEngine_Bridge?sort=semver)](https://github.com/JosephOIbrahim/UnrealEngine_Bridge/releases/latest)
 [![CI](https://github.com/JosephOIbrahim/UnrealEngine_Bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/JosephOIbrahim/UnrealEngine_Bridge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Unreal Engine 5.7 · 5.8-ready](https://img.shields.io/badge/Unreal%20Engine-5.7%20·%205.8--ready-0a0a14)](https://www.unrealengine.com/)
+[![Unreal Engine 5.8](https://img.shields.io/badge/Unreal%20Engine-5.8-0a0a14)](https://www.unrealengine.com/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 
 **Claude Code, working inside your Unreal editor.** This bridge gives Claude the abilities Epic's own MCP doesn't ship: run real editor Python, see the viewport continuously, light scenes with one command, reason about space with surface normals, and stay honest about every result.
