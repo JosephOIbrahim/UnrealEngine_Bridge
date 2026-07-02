@@ -51,6 +51,6 @@ public class UEBridgeEditor : ModuleRules
         });
 
         PublicDefinitions.Add("WITH_USD_SUPPORT=1");
-        PublicDefinitions.Add("BRIDGE_VERSION=TEXT(\"2.1.0\")");
+        PublicDefinitions.Add("BRIDGE_VERSION=TEXT(\"0.2.0\")");
     }
 }

@@ -1,7 +1,7 @@
 # Security Policy
 
 UnrealEngine_Bridge is an MCP server that bridges Claude Code to Unreal Engine
-5.7. Because it can spawn actors, set properties, execute editor Python, and
+5.8. Because it can spawn actors, set properties, execute editor Python, and
 read the viewport on your behalf, it is a powerful tool that runs against a live
 editor. This document explains the trust model it is designed for, how to deploy
 it safely, and how to report a security issue.
@@ -19,8 +19,8 @@ still reproduces.
 | Latest tagged release    | :white_check_mark: | Receives backported fixes for high-severity issues when feasible. |
 | Older releases / forks   | :x:                | Unmaintained. Please upgrade to the latest release or `master`.   |
 
-**Runtime baseline.** The bridge targets **Unreal Engine 5.7** (`EngineVersion`
-5.7.0 in both bundled `.uplugin` files) and **Python 3.11 or newer** for the MCP
+**Runtime baseline.** The bridge targets **Unreal Engine 5.8** (`EngineVersion`
+5.8.0 in both bundled `.uplugin` files) and **Python 3.11 or newer** for the MCP
 server and Python bridge. Issues that only reproduce on unsupported engine
 versions or older Python runtimes may be closed as out of scope, though the
 report is still welcome.
