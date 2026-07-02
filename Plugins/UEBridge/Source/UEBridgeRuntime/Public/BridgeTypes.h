@@ -15,7 +15,7 @@
 UENUM(BlueprintType, meta = (ToolTip = "Bridge state machine states"))
 enum class EUEBridgeState : uint8
 {
-    /** No file watcher running. StartGame() not called yet. */
+    /** No file watcher running; bridge inactive. */
     Idle            UMETA(DisplayName = "Idle"),
 
     /** File watcher running, waiting for Python bridge_orchestrator "ready" message. */

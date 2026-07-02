@@ -34,18 +34,6 @@ public:
 
     // === GAME FLOW ===
 
-    /** Start the bridge: resolve path, create directory, begin polling */
-    UFUNCTION(BlueprintCallable, Category = "UE Bridge", meta = (ToolTip = "Start the bridge and begin watching for state files"))
-    void StartGame();
-
-    /** Stop the bridge and reset state */
-    UFUNCTION(BlueprintCallable, Category = "UE Bridge", meta = (ToolTip = "Stop the bridge and clean up"))
-    void StopGame();
-
-    /** Submit a player answer (prefers USD, falls back to JSON) */
-    UFUNCTION(BlueprintCallable, Category = "UE Bridge", meta = (ToolTip = "Submit the player's answer for the current question"))
-    void SubmitAnswer(const FString& QuestionId, int32 OptionIndex, float ResponseTimeMs);
-
     /** Send acknowledgment that UE5 is ready (prefers USD, falls back to JSON) */
     UFUNCTION(BlueprintCallable, Category = "UE Bridge", meta = (ToolTip = "Acknowledge readiness to the Python bridge"))
     void SendAcknowledge();
