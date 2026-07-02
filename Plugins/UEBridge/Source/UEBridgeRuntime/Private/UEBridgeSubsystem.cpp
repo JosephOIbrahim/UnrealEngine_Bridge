@@ -27,7 +27,7 @@ void UUEBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UUEBridgeSubsystem::Deinitialize()
 {
-    StopGame();
+    bIsActive = false;
     UE_LOG(LogUEBridge, Log, TEXT("UEBridgeSubsystem deinitialized"));
     Super::Deinitialize();
 }
@@ -133,124 +133,6 @@ void UUEBridgeSubsystem::Tick(float DeltaTime)
 
 
 // === GAME FLOW ===
-
-void UUEBridgeSubsystem::StartGame()
-{
-    if (bIsActive)
-    {
-        BridgeLog(TEXT("Bridge already active"));
-        return;
-    }
-
-    BridgeLog(TEXT("========================================"));
-    BridgeLog(TEXT("TRANSLATORS BRIDGE SUBSYSTEM v2.1.0"));
-    BridgeLog(TEXT("USD-native communication with JSON fallback"));
-    BridgeLog(FString::Printf(TEXT("Bridge Path: %s"), *BridgePath));
-    BridgeLog(TEXT("========================================"));
-
-    // Ensure bridge directory exists
-    IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-    if (!PlatformFile.DirectoryExists(*BridgePath))
-    {
-        PlatformFile.CreateDirectory(*BridgePath);
-        BridgeLog(FString::Printf(TEXT("Created bridge directory: %s"), *BridgePath));
-    }
-
-    bIsActive = true;
-    SetState(EUEBridgeState::WaitingForBridge);
-
-    // Check for existing state files (Python may have started first)
-    FString UsdFilePath = GetBridgeFilePath(TEXT("bridge_state.usda"));
-    FString JsonFilePath = GetBridgeFilePath(TEXT("state.json"));
-
-    if (PlatformFile.FileExists(*UsdFilePath))
-    {
-        BridgeLog(TEXT("Found existing bridge_state.usda - processing..."));
-        ProcessStateFile();
-    }
-    else if (PlatformFile.FileExists(*JsonFilePath))
-    {
-        BridgeLog(TEXT("Found existing state.json - processing..."));
-        ProcessStateFile();
-    }
-}
-
-void UUEBridgeSubsystem::StopGame()
-{
-    if (!bIsActive)
-    {
-        return;
-    }
-
-    bIsActive = false;
-    bStateChangePending = false;
-    bUsdChangePending = false;
-    SetState(EUEBridgeState::Idle);
-
-    BridgeLog(TEXT("Bridge stopped"));
-}
-
-
-void UUEBridgeSubsystem::SubmitAnswer(const FString& QuestionId, int32 OptionIndex, float ResponseTimeMs)
-{
-    // Try USD mode first
-    FString FilePath = GetBridgeFilePath(TEXT("bridge_state.usda"));
-    FString Content;
-
-    if (bUsingUsdMode && FFileHelper::LoadFileToString(Content, *FilePath))
-    {
-        FString Timestamp = FDateTime::UtcNow().ToIso8601();
-        FString SelectedLabel = (OptionIndex >= 0 && OptionIndex < CurrentQuestion.OptionLabels.Num())
-            ? CurrentQuestion.OptionLabels[OptionIndex] : TEXT("");
-        FString SelectedDirection = (OptionIndex >= 0 && OptionIndex < CurrentQuestion.OptionDirections.Num())
-            ? CurrentQuestion.OptionDirections[OptionIndex] : TEXT("");
-
-        Content = UpdateUsdaVariant(Content, TEXT("sync_status"), TEXT("answer_received"));
-        Content = UpdateUsdaVariant(Content, TEXT("message_type"), TEXT("answer"));
-
-        Content = UpdateUsdaAttribute(Content, TEXT("Answer"), TEXT("question_id"), QuestionId, true);
-        Content = UpdateUsdaAttribute(Content, TEXT("Answer"), TEXT("option_index"), FString::FromInt(OptionIndex), false);
-        Content = UpdateUsdaAttribute(Content, TEXT("Answer"), TEXT("response_time_ms"), FString::SanitizeFloat(ResponseTimeMs), false);
-        Content = UpdateUsdaAttribute(Content, TEXT("Answer"), TEXT("selected_label"), SelectedLabel, true);
-        Content = UpdateUsdaAttribute(Content, TEXT("Answer"), TEXT("selected_direction"), SelectedDirection, true);
-        Content = UpdateUsdaAttribute(Content, TEXT("Answer"), TEXT("timestamp"), Timestamp, true);
-
-        UpdateBehavioralSignals(Content, ResponseTimeMs);
-
-        int32 MaxRetries = 3;
-        for (int32 Retry = 0; Retry < MaxRetries; ++Retry)
-        {
-            if (FFileHelper::SaveStringToFile(Content, *FilePath))
-            {
-                BridgeLog(FString::Printf(TEXT("USD answer sent: %s = option %d (%.0fms)"),
-                    *QuestionId, OptionIndex, ResponseTimeMs));
-                SetState(EUEBridgeState::AnswerPending);
-                return;
-            }
-            FPlatformProcess::Sleep(0.1f);
-        }
-
-        BridgeLog(TEXT("USD answer write failed, falling back to JSON"));
-    }
-
-    // JSON fallback
-    TSharedPtr<FJsonObject> JsonObj = MakeShared<FJsonObject>();
-    JsonObj->SetStringField(TEXT("$schema"), TEXT("translators-answer-v1"));
-    JsonObj->SetStringField(TEXT("type"), TEXT("answer"));
-    JsonObj->SetStringField(TEXT("timestamp"), FDateTime::UtcNow().ToIso8601());
-
-    TSharedPtr<FJsonObject> AnswerObj = MakeShared<FJsonObject>();
-    AnswerObj->SetStringField(TEXT("question_id"), QuestionId);
-    AnswerObj->SetNumberField(TEXT("option_index"), OptionIndex);
-    AnswerObj->SetNumberField(TEXT("response_time_ms"), ResponseTimeMs);
-    JsonObj->SetObjectField(TEXT("answer"), AnswerObj);
-
-    WriteJsonToFile(TEXT("answer.json"), JsonObj);
-    SetState(EUEBridgeState::AnswerPending);
-
-    BridgeLog(FString::Printf(TEXT("JSON answer sent: %s = option %d (%.0fms)"),
-        *QuestionId, OptionIndex, ResponseTimeMs));
-}
 
 
 void UUEBridgeSubsystem::SendAcknowledge()
