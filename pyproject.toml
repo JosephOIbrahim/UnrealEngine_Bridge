@@ -35,7 +35,7 @@ path = "ue_mcp/__version__.py"
 # Flat layout: the distribution name (ue-bridge) has no matching directory, so the
 # first-party packages must be named explicitly — newer hatchling no longer
 # auto-detects them, which broke `pip install -e .`.
-packages = ["ue_mcp", "remote_control"]
+packages = ["ue_mcp", "remote_control", "x3d_bridge"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"

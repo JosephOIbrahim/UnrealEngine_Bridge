@@ -8,7 +8,7 @@
 
 **Claude Code, working inside your Unreal editor.** This bridge gives Claude the abilities Epic's own MCP doesn't ship: run real editor Python, see the viewport continuously, light scenes with one command, reason about space with surface normals, and stay honest about every result.
 
-**58 MCP tools · 20 mounted by default · 580 tests** · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+**58 MCP tools · 20 mounted by default · 635 tests** · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
 ---
 
@@ -176,6 +176,44 @@ Epic's MCP covers these — the matrix cites the exact equivalent for every row.
 
 ---
 
+## 🧊 UE ↔ X3D round-trip harness  *(new in v0.3.0)*
+
+**Hand Claude a level as open X3D it can read, edit, and validate — then write it back losslessly.** A thin, fully-tested slice: no live editor needed to prove an edit is safe.
+
+**The one invariant it defends:**
+
+```
+deserialize( serialize( level ) )  ==  level
+```
+
+Lossless round trip, plus malformed edits rejected **on paper** before any mutation. If both hold, the bridge is trustworthy — if either fails, nothing else matters.
+
+| Piece | Job |
+|---|---|
+| **Coordinate crux** | UE (Z-up, LH, cm) ↔ X3D (Y-up, RH, m) as one orthonormal basis `B` (det −1). `B⁻¹ = Bᵀ`, so the round trip is exact *by construction* — picking the right `B` is calibration, not correctness. |
+| **Closed grammar** | An X3D node set small enough to hand a model *whole* and validate against. UE specifics (mesh · mobility · folder · parent) ride in `Metadata*`. |
+| **Validate boundary** | Out-of-grammar nodes, dangling `USE`, NaN/∞, wrong arity, non-X3D root — all die here, before the editor is touched. |
+| **Apply seam** | Diffs two scenes into typed ops (spawn · transform · material · reparent) that emit `ue_execute_python`. |
+| **Preview** | The same X3D drops into a browser via X_ITE — free. |
+
+```python
+from x3d_bridge import Actor, serialize, deserialize, validate
+
+x3d = serialize([Actor(guid="Rock_01", mesh="/Game/Meshes/SM_Rock",
+                       t=(420.0, 0.0, 155.0))])
+ok, errors = validate(x3d)     # the paper boundary
+level = deserialize(x3d)       # lossless
+```
+
+**Status — honest, per the house rule:**
+
+- ✅ **55 tests** — round-trip · validation battery · apply-op sequence — all green
+- ✅ Basis `B` independently re-derived and confirmed three ways
+- ⏳ `B` is *analytic* — **not yet calibrated against a live glTF export** (round-trip is basis-agnostic, so this is fidelity-only, never correctness)
+- ⏳ A library today — **not yet exposed as MCP tools**
+
+---
+
 ## Why trust the results? Honesty as architecture
 
 This bridge's tools **cannot silently lie** — that's enforced, not promised:
@@ -183,7 +221,7 @@ This bridge's tools **cannot silently lie** — that's enforced, not promised:
 - **Exec-simulated codegen tests.** Every generated editor script is compiled and executed against a strict fake `unreal` module in CI. Phantom APIs raise. Dropped arguments fail a sentinel gate. Hard-coded success prints fail honesty contracts.
 - **Read-back verification.** Writes that UE can silently ignore (cloner layout names) are read back before being reported "applied".
 - **Honest statuses.** The viewport fallback reports `capture_status: timeout` instead of an empty image with `success: true`. Not-implemented tools say "not implemented".
-- **580 tests**, including scripted-failure contracts for every historical lying-tool bug.
+- **635 tests**, including scripted-failure contracts for every historical lying-tool bug.
 
 ```mermaid
 graph TB
@@ -250,6 +288,7 @@ UnrealEngine_Bridge/
 │   ├── ue_logging.py              # Structured JSON logging
 │   └── tools/                     # 14 modules · 56 tools · tiered registry in __init__.py
 ├── remote_control/                # UE5 HTTP bridge (circuit breaker, codegen, polling)
+├── x3d_bridge/                    # UE↔X3D round-trip harness (coords · grammar · validate · apply)
 ├── usd_bridge/                    # USD file I/O package (parked, out of the ship path)
 ├── Plugins/
 │   ├── UEBridge/                  # Editor panel, file watcher (C++)
@@ -258,7 +297,7 @@ UnrealEngine_Bridge/
 │   ├── EPIC_MCP_MATRIX.md         # Retirement contract-of-record (probe-grounded)
 │   └── epic_mcp/                  # Raw probe captures of Epic's 830-tool surface
 ├── scripts/probe_epic_mcp.py      # Re-probe Epic's surface per engine version
-├── tests/                         # 580 tests, incl. tests/exec_sim/ + tier gates
+├── tests/                         # 635 tests, incl. tests/exec_sim/ + tier gates
 ├── smoke_live.py                  # Live-editor smoke harness (on-demand)
 └── .mcp.json                      # Two-server config: this bridge + Epic's MCP
 ```
@@ -271,7 +310,7 @@ UnrealEngine_Bridge/
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest -q                # 580 tests
+python -m pytest -q                # 635 tests
 ```
 
 **Lint**

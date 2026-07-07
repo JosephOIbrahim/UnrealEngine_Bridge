@@ -4,6 +4,37 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-07 — UE ↔ X3D round-trip harness
+
+A new, self-contained `x3d_bridge/` package: a lossless UE↔X3D serialization
+harness whose single defended invariant is
+`deserialize(serialize(level)) == level`, with a validation boundary that
+rejects malformed edits on paper before the live editor is touched. Independent
+of the MCP tool surface and of the USD path.
+
+### Added
+- **`x3d_bridge/`** — five modules:
+  - `coordinates` — the coordinate crux: one orthonormal basis `B` (det −1)
+    for UE (Z-up, LH, cm) ↔ X3D (Y-up, RH, m); quaternion ↔ matrix ↔
+    axis-angle; a `basis_from_axis_images` calibration primitive. The round
+    trip is exact by construction (`B⁻¹ = Bᵀ`).
+  - `grammar` — a closed X3D node set + `serialize`/`deserialize` (flat,
+    world-space, DEF/USE material dedup); UE specifics ride in `Metadata*`.
+  - `validate` — the paper boundary: grammar, DEF/USE resolution, numeric
+    arity, root-is-X3D, and finiteness.
+  - `loop` — a five-stage headless loop (read → serialize → edit → validate →
+    apply); diffs scenes into typed ops that emit `ue_execute_python`.
+  - `preview` — the same X3D in a browser via X_ITE.
+- **`tests/test_x3d_bridge.py`** — 55 tests: round-trip identity, the
+  validation battery, apply-op sequences, and forward-pinned coordinate
+  correctness. **635 tests total** (was 580).
+
+### Notes
+- `B` is analytically derived and independently confirmed, but **not yet
+  calibrated against a live editor's glTF export**. The round trip is
+  basis-agnostic, so this affects external-tool fidelity, not correctness.
+- The harness is a library; it is **not yet exposed as MCP tools**.
+
 ## [0.2.0] - 2026-07-02 — the Epic MCP era
 
 > **Version renumbering:** the public line continues from v0.1.1. An internal
