@@ -22,6 +22,7 @@ from .execution import (
     _poll_result_sync,
     _prepare_execution,
 )
+from .preflight import http_error_detail
 
 
 class UnrealRemoteControl:
@@ -104,8 +105,10 @@ class UnrealRemoteControl:
             self._cb.record_failure()
             metrics.inc("requests.error")
             metrics.record_latency("execute_python", time.time() - t0)
-            logger.error("UE5 connection failed: %s", e)
-            return {"result": None, "output": "", "error": f"Connection failed: {e}"}
+            # Preserve the Remote Control response body (see async_client / preflight).
+            detail = http_error_detail(e)
+            logger.error("UE5 remote call failed: %s", detail)
+            return {"result": None, "output": "", "error": detail}
         except Exception:
             # Non-connection fault (e.g. local file I/O in _prepare_execution): don't
             # trip the breaker, but release any HALF_OPEN probe slot we acquired so the

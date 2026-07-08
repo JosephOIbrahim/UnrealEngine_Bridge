@@ -19,7 +19,7 @@ import tempfile
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-from remote_control import BASE_URL, AsyncUnrealRemoteControl
+from remote_control import BASE_URL, AsyncUnrealRemoteControl, preflight
 from ue_mcp.__version__ import __version__
 from ue_mcp.metrics import metrics
 from ue_mcp.tools import register_all_tools
@@ -116,7 +116,8 @@ async def status() -> str:
     description=(
         "Get bridge health: version, uptime, circuit breaker state, "
         "request metrics (counts, latencies, error rates). "
-        "Use this to diagnose connection issues."
+        "Use this to diagnose connection issues. Pass deep=true to also run the "
+        "capability preflight (can the bridge actually execute, not just connect)."
     ),
     annotations={
         "readOnlyHint": True,
@@ -124,7 +125,7 @@ async def status() -> str:
         "idempotentHint": True,
     },
 )
-async def health_check() -> str:
+async def health_check(deep: bool = False) -> str:
     """Comprehensive health report for the UE5 bridge."""
     connected = await ue.is_connected()
     cb_state = ue._cb.state if hasattr(ue, "_cb") else "unknown"
@@ -158,7 +159,46 @@ async def health_check() -> str:
         report["unclassified_tools"] = registry.unclassified
     if registry.profile_warning:
         report["profile_warning"] = registry.profile_warning
+    if deep:
+        pf = await preflight(ue)
+        report["preflight"] = {
+            "ok": pf.ok,
+            "rung": pf.rung,
+            "cause": pf.cause,
+            "fix": pf.fix,
+            "engine_version": pf.engine_version,
+        }
     return json.dumps(report, indent=2)
+
+
+@server.tool(
+    name="ue_preflight",
+    description=(
+        "Capability preflight: probe whether the bridge can ACTUALLY execute "
+        "against the editor, not merely connect. Runs a ladder -- reachable, "
+        "remote function calls permitted, a value round-trips, full Python "
+        "round-trip -- stops at the first failure, and returns the named cause "
+        "plus the one-line fix (with the raw Remote Control error body as "
+        "evidence). Use this whenever tools error but ue_status says connected -- "
+        "e.g. UE 5.8's bAllowAnyRemoteFunctionCall block."
+    ),
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+    },
+)
+async def preflight_check() -> str:
+    """Run the capability ladder and report the first failure with a fix."""
+    pf = await preflight(ue)
+    return json.dumps({
+        "ok": pf.ok,
+        "rung": pf.rung,
+        "cause": pf.cause,
+        "fix": pf.fix,
+        "evidence": pf.evidence,
+        "engine_version": pf.engine_version,
+    }, indent=2)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
