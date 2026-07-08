@@ -31,6 +31,7 @@ from .python_exec import register as register_python_exec
 from .scene import register as register_scene
 from .sequencer import register as register_sequencer
 from .spatial import register as register_spatial
+from .x3d import register as register_x3d
 
 
 class Tier(StrEnum):
@@ -116,6 +117,11 @@ TIERS: dict[str, Tier] = {
     "ue_play_sequence": _LEGACY,
     "ue_add_actor_to_sequence": _LEGACY,
     "ue_add_keyframe": _LEGACY,
+    # x3d.py — UE<->X3D thin-slice harness (no Epic counterpart)
+    "ue_x3d_export": _CORE,
+    "ue_x3d_validate": _CORE,
+    "ue_x3d_apply": _CORE,
+    "ue_x3d_preview": _CORE,
 }
 
 PROFILES: dict[str, set[Tier]] = {
@@ -172,6 +178,7 @@ _ALL_REGISTER_FNS = (
     register_materials,
     register_editor,
     register_sequencer,
+    register_x3d,
 )
 
 

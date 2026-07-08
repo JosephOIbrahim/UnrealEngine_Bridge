@@ -56,6 +56,17 @@ class ToolEntry:
     notes: str = ""
 
 
+# Minimal valid X3D for the DIRECT x3d tools, and an apply sentinel whose DEF is a
+# seeded stub actor so the generated SetTransform resolves to a real actor.
+_X3D_MIN = '<X3D profile="Interchange" version="4.0"><Scene></Scene></X3D>'
+_X3D_APPLY_SENTINEL = (
+    '<X3D profile="Interchange" version="4.0"><Scene>'
+    '<Transform DEF="' + SENTINEL_ACTOR_PATH + '"'
+    ' translation="1.0 2.0 3.0" rotation="0.0 0.0 1.0 0.0" scale="1.0 1.0 1.0"/>'
+    "</Scene></X3D>"
+)
+
+
 _ENTRIES = [
     # ------------------------------------------------------------- actors.py
     ToolEntry(
@@ -374,6 +385,29 @@ _ENTRIES = [
                             "time_seconds", "value"),
         expect_error=True,
         notes="honest not-implemented report: an error RESULT is the CORRECT behavior",
+    ),
+    # ----------------------------------------------------------------- x3d.py
+    ToolEntry(
+        "ue_x3d_export", CODEGEN,
+        kwargs=dict(mesh_only=True),
+        notes="reads every level actor via a static script; no user args interpolated",
+    ),
+    ToolEntry(
+        "ue_x3d_validate", DIRECT,
+        kwargs=dict(x3d=_X3D_MIN),
+        notes="pure x3d_bridge.validate; never touches the editor",
+    ),
+    ToolEntry(
+        "ue_x3d_apply", CODEGEN,
+        kwargs=dict(x3d=_X3D_APPLY_SENTINEL),
+        # translation/rotation/scale pass through x3d_bridge.coordinates (X3D->UE
+        # basis) before emission, so they are NOT literal in the generated source.
+        notes="applies transforms; DEF must be a real actor path (SENTINEL_ACTOR_PATH)",
+    ),
+    ToolEntry(
+        "ue_x3d_preview", DIRECT,
+        kwargs=dict(x3d=_X3D_MIN),
+        notes="renders X3D to HTML in-process; never touches the editor",
     ),
 ]
 
