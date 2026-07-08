@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-08 — ue_x3d_* : the harness on the wire
+
+The v0.3.0 UE↔X3D harness (`x3d_bridge`) is now exposed as MCP tools, so Claude
+can export a live level to X3D, validate it, apply transform edits back, and
+preview it — inside the editor. All four are **CORE-tier** (mounted by default);
+Epic's MCP has no X3D surface.
+
+### Added
+- **`ue_x3d_export`** — serialize the current level to X3D. Reads each actor's
+  quaternion transform, static mesh, material, and attach parent; converts UE
+  (Z-up, cm) → X3D (Y-up, m). `mesh_only` by default.
+- **`ue_x3d_validate`** — the paper boundary as a tool: rejects out-of-grammar
+  nodes, dangling `USE`, wrong arity, non-X3D roots, NaN/inf — without touching
+  the editor.
+- **`ue_x3d_apply`** — apply an X3D document's actor transforms back to the live
+  level (validated, guids sanitized via `sanitize_object_path`, emitted through
+  `ue_execute_python`). Transforms in v0.4.0; spawn / material / reparent apply
+  are documented follow-ups.
+- **`ue_x3d_preview`** — render X3D to a standalone X_ITE browser page.
+- `tests/test_x3d_async.py` + exec-sim coverage for the two codegen tools (stub
+  extended with `Quat` / `Transform` / `get_actor_transform`). Tier table pinned
+  at 60 tools / 22 CORE.
+
+### Notes
+- Editor-independent and CI-green; the **live** round-trip against a real 5.8
+  scene is gated on `ue_preflight` reading green (i.e. `bAllowAnyRemoteFunctionCall`
+  applied). `B` remains analytic (not glTF-calibrated) — the round trip is
+  basis-agnostic, so that is fidelity-only.
+
 ## [0.3.1] - 2026-07-08 — 5.8 survival: the Capability Ladder
 
 The bridge was **silently broken on UE 5.8**: 5.8 defaults

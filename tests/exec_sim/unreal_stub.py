@@ -66,6 +66,21 @@ class Rotator:
         self.pitch, self.yaw, self.roll = float(pitch), float(yaw), float(roll)
 
 
+class Quat:
+    def __init__(self, x=0.0, y=0.0, z=0.0, w=1.0):
+        self.x, self.y, self.z, self.w = float(x), float(y), float(z), float(w)
+
+    def rotator(self):
+        return Rotator()
+
+
+class Transform:
+    def __init__(self, translation=None, rotation=None, scale3d=None):
+        self.translation = translation if translation is not None else Vector()
+        self.rotation = rotation if rotation is not None else Quat()
+        self.scale3d = scale3d if scale3d is not None else Vector(1.0, 1.0, 1.0)
+
+
 class LinearColor:
     def __init__(self, r=0.0, g=0.0, b=0.0, a=1.0):
         self.r, self.g, self.b, self.a = float(r), float(g), float(b), float(a)
@@ -353,6 +368,9 @@ def make_unreal_stub(**overrides) -> types.ModuleType:
         def set_actor_scale3d(self, v):
             self._scale = v
             return True
+
+        def get_actor_transform(self):
+            return Transform(self._location, Quat(), self._scale)
 
         def get_actor_bounds(self, only_colliding, *args):
             return (Vector(0.0, 0.0, 100.0), Vector(50.0, 50.0, 100.0))
@@ -702,6 +720,7 @@ def make_unreal_stub(**overrides) -> types.ModuleType:
 
     exported = {
         "Vector": Vector, "Vector4": Vector4, "Rotator": Rotator,
+        "Quat": Quat, "Transform": Transform,
         "LinearColor": LinearColor, "Color": Color, "Name": Name,
         "EditorActorSubsystem": EditorActorSubsystem,
         "UnrealEditorSubsystem": UnrealEditorSubsystem,

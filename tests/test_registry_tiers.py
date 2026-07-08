@@ -54,9 +54,9 @@ def test_matrix_arithmetic_is_pinned():
     """docs/EPIC_MCP_MATRIX.md §4: 36 RETIRE; KEEP/KEEP-PARTIAL = 18 CORE here
     (ue_status/ue_health_check live in mcp_server.py, outside this registry);
     undo/redo are the two honest not-implemented EXPERIMENTAL slots."""
-    assert len(TIERS) == 56
+    assert len(TIERS) == 60
     assert len(LEGACY_NAMES) == 36
-    assert len(CORE_NAMES) == 18
+    assert len(CORE_NAMES) == 22
     assert EXP_NAMES == {"ue_undo", "ue_redo"}
 
 
