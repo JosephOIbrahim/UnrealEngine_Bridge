@@ -4,6 +4,39 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-07-08 — 5.8 survival: the Capability Ladder
+
+The bridge was **silently broken on UE 5.8**: 5.8 defaults
+`RemoteControlSettings.bAllowAnyRemoteFunctionCall` to False, which blocks every
+`/remote/object/call` with HTTP 400 *"not allowed by remote control settings"*.
+So `execute_python` and every codegen tool failed live while `ue_status` and the
+mock-only CI stayed green — connectivity was measured, capability never was.
+
+### Fixed
+- **`bAllowAnyRemoteFunctionCall=True`** in `Config/DefaultRemoteControl.ini` —
+  the one line that unblocks every tool on 5.8 (localhost-only, single-trusted-
+  operator; the bridge already permits arbitrary Python exec over RC).
+- The Remote Control error **body is no longer swallowed** — the clients returned
+  only `"Client error '400 '"`; they now preserve the RC response body that says
+  *why* (`remote_control/async_client.py`, `sync_client.py`).
+
+### Added — the Capability Ladder (so this can't recur silently)
+- **`ue_preflight`** MCP tool + `ue_health_check(deep=true)`: a runtime probe that
+  separates *reachable* (a GET) from *permitted* / *capable* (a real function
+  call) / *round-trip* (the full Python path), stops at the first failure, and
+  returns the **named cause + one-line fix** with the raw RC body as evidence
+  (`remote_control/preflight.py`).
+- A **diagnosis map** (error signature → cause → fix); every future live failure
+  becomes a rule.
+- `tests/test_preflight.py` — 13 tests including the golden **failure** test: the
+  5.8 block must surface as rung `Permitted` naming `bAllowAnyRemoteFunctionCall`.
+
+### Notes
+- The mock suite proves the ladder's logic; a live 5.8 editor round-trip
+  (`ue_preflight`) is still the only proof of end-to-end capability. The config
+  fix is evidence-based (engine header `RemoteControlSettings.h:351` + the exact
+  error body).
+
 ## [0.3.0] - 2026-07-07 — UE ↔ X3D round-trip harness
 
 A new, self-contained `x3d_bridge/` package: a lossless UE↔X3D serialization
