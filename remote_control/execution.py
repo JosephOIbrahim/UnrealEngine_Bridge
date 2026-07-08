@@ -99,7 +99,14 @@ def _prepare_execution(temp_dir: str, code: str) -> tuple[str, str, str]:
 
 
 def _build_exec_payload(script_file: str) -> dict:
-    """Build the Remote Control call payload for script execution."""
+    """Build the Remote Control call payload for script execution.
+
+    Note: on UE 5.8 this (and every /remote/object/call) is rejected with HTTP
+    400 "not allowed by remote control settings" unless the project sets
+    bAllowAnyRemoteFunctionCall=True -- a 5.8 security default that silently
+    broke the bridge (it worked on 5.7). The fix lives in
+    Config/DefaultRemoteControl.ini, not here.
+    """
     return {
         "objectPath": "/Script/Engine.Default__KismetSystemLibrary",
         "functionName": "ExecuteConsoleCommand",
